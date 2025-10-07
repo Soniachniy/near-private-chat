@@ -1,18 +1,18 @@
 import type React from "react";
 import { useState } from "react";
 import { authClient } from "@/api/auth/client";
+import { useConfig } from "@/api/config/queries";
 import CheckIcon from "@/assets/icons/check-icon.svg?react";
 import GitHubIcon from "@/assets/icons/github-icon.svg?react";
 import GoogleIcon from "@/assets/icons/google-icon.svg?react";
 import NearAIIcon from "@/assets/icons/near-icon-green.svg?react";
-import { useConfigStore } from "@/stores/useConfig";
 import type { OAuth2Provider } from "@/types";
 import Spinner from "../components/common/Spinner";
 
 const TERMS_VERSION = "V1";
 
 const AuthPage: React.FC = () => {
-  const config = useConfigStore((state) => state.config);
+  const { data: config } = useConfig();
 
   const [agreedTerms, setAgreedTerms] = useState(localStorage.getItem("agreedTerms") === TERMS_VERSION);
 

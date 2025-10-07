@@ -68,7 +68,7 @@ class ChatClient extends ApiClient {
   }
 
   async getAllChats() {
-    return this.get<ChatInfo[]>(`/chats/all`);
+    return this.get<Chat[]>(`/chats/all`);
   }
 
   async getChatListBySearchText(text: string, page: number = 1) {
