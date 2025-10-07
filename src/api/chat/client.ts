@@ -1,6 +1,6 @@
-import type { Chat, ChatInfo, Tag } from "@/types";
 import { ApiClient } from "@/api/base-client";
 import { getTimeRange } from "@/lib/utils";
+import type { Chat, ChatInfo, Tag } from "@/types";
 
 class ChatClient extends ApiClient {
   constructor() {
@@ -31,12 +31,7 @@ class ChatClient extends ApiClient {
     });
   }
 
-  async importChat(
-    chat: object,
-    meta: object | null,
-    pinned?: boolean,
-    folderId?: string | null
-  ) {
+  async importChat(chat: object, meta: object | null, pinned?: boolean, folderId?: string | null) {
     return this.post<Chat>("/chats/import", {
       chat: chat,
       meta: meta ?? {},
@@ -50,9 +45,7 @@ class ChatClient extends ApiClient {
     if (page !== null) {
       searchParams.append("page", `${page}`);
     }
-    const res = await this.get<ChatInfo[]>(
-      `/chats/?${searchParams.toString()}`
-    );
+    const res = await this.get<ChatInfo[]>(`/chats/?${searchParams.toString()}`);
 
     return res.map((chat) => ({
       ...chat,
@@ -83,9 +76,7 @@ class ChatClient extends ApiClient {
     searchParams.append("text", text);
     searchParams.append("page", `${page}`);
 
-    const res = await this.get<Chat[]>(
-      `/chats/search?${searchParams.toString()}`
-    );
+    const res = await this.get<Chat[]>(`/chats/search?${searchParams.toString()}`);
 
     return res.map((chat) => ({
       ...chat,

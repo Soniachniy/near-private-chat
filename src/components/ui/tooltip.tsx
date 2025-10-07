@@ -51,19 +51,17 @@ function TooltipContent({
 }
 
 type TooltipCompactProps = React.PropsWithChildren & {
-	content: React.ReactNode;
-  align?: React.ComponentProps<typeof TooltipPrimitive.Content>['align'];
-}
+  content: React.ReactNode;
+  align?: React.ComponentProps<typeof TooltipPrimitive.Content>["align"];
+};
 
-const CompactTooltip = ({ children, content, align = 'start' }: TooltipCompactProps) => {
-	return (
-		<Tooltip>
-			<TooltipTrigger asChild>{children}</TooltipTrigger>
-			<TooltipContent align={align}>
-				{content}
-			</TooltipContent>
-		</Tooltip>
-	)
-}
+const CompactTooltip = ({ children, content, align = "start" }: TooltipCompactProps) => {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent align={align}>{content}</TooltipContent>
+    </Tooltip>
+  );
+};
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, CompactTooltip }
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, CompactTooltip };

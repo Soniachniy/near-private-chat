@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { SessionUser, UserStore } from '../types';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { SessionUser, UserStore } from "../types";
 
 export const useUserStore = create<UserStore>()(
   persist(
@@ -9,7 +9,7 @@ export const useUserStore = create<UserStore>()(
       setUser: (user: SessionUser | null) => set({ user }),
     }),
     {
-      name: 'user-storage',
+      name: "user-storage",
     }
   )
 );

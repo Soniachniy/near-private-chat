@@ -1,9 +1,9 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { io, Socket } from "socket.io-client";
+import { io, type Socket } from "socket.io-client";
+import type { Message } from "@/types";
 import { useChatStore } from "../../../stores/useChatStore";
 import { TEMP_API_BASE_URL } from "../../constants";
-import type { Message } from "@/types";
 
 interface ChatEventData {
   chat_id: string;
@@ -56,26 +56,15 @@ interface CompletionData {
   };
 }
 
-export const useChatWebSocket = (
-  setCurrentMessages: React.Dispatch<React.SetStateAction<Message[]>>
-) => {
+export const useChatWebSocket = (setCurrentMessages: React.Dispatch<React.SetStateAction<Message[]>>) => {
   const socketRef = useRef<Socket | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<
-    "connecting" | "connected" | "disconnected" | "error"
-  >("disconnected");
+  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "disconnected" | "error">(
+    "disconnected"
+  );
 
   const handleChatCompletion = useCallback(
     (data: CompletionData, messageId: string) => {
-      const {
-        id,
-        done,
-        choices,
-        content,
-        sources,
-        selected_model_id,
-        error,
-        usage,
-      } = data;
+      const { id, done, choices, content, sources, selected_model_id, error, usage } = data;
 
       const { currentChat } = useChatStore.getState();
 
@@ -95,9 +84,7 @@ export const useChatWebSocket = (
 
       if (id) {
         setCurrentMessages((prevMessages: Message[]) => {
-          const message = prevMessages.find(
-            (message) => message.id === messageId
-          );
+          const message = prevMessages.find((message) => message.id === messageId);
           if (message) {
             message.chatCompletionId = id;
           }
@@ -107,9 +94,7 @@ export const useChatWebSocket = (
 
       if (sources) {
         setCurrentMessages((prevMessages: Message[]) => {
-          const message = prevMessages.find(
-            (message) => message.id === messageId
-          );
+          const message = prevMessages.find((message) => message.id === messageId);
           if (message) {
             message.sources = sources;
           }
@@ -119,9 +104,7 @@ export const useChatWebSocket = (
 
       if (usage) {
         setCurrentMessages((prevMessages: Message[]) => {
-          const message = prevMessages.find(
-            (message) => message.id === messageId
-          );
+          const message = prevMessages.find((message) => message.id === messageId);
           if (message) {
             message.usage = usage;
           }
@@ -135,9 +118,7 @@ export const useChatWebSocket = (
 
         if (choice.message?.content) {
           setCurrentMessages((prevMessages: Message[]) => {
-            const message = prevMessages.find(
-              (message) => message.id === messageId
-            );
+            const message = prevMessages.find((message) => message.id === messageId);
             if (message) {
               message.content = choice?.message?.content || "";
             }
@@ -147,17 +128,11 @@ export const useChatWebSocket = (
           const deltaContent = choice.delta.content;
 
           const currentMessage = currentChat?.chat.history.messages[messageId];
-          if (
-            currentMessage &&
-            currentMessage.content === "" &&
-            deltaContent === "\n"
-          ) {
+          if (currentMessage && currentMessage.content === "" && deltaContent === "\n") {
             console.log("Empty response");
           } else {
             setCurrentMessages((prevMessages: Message[]) => {
-              const message = prevMessages.find(
-                (message) => message.id === messageId
-              );
+              const message = prevMessages.find((message) => message.id === messageId);
               if (message) {
                 message.content = message.content + deltaContent;
               }
@@ -169,9 +144,7 @@ export const useChatWebSocket = (
 
       if (content) {
         setCurrentMessages((prevMessages: Message[]) => {
-          const prveMessage = prevMessages.find(
-            (message) => message.id === messageId
-          );
+          const prveMessage = prevMessages.find((message) => message.id === messageId);
           if (prveMessage) {
             prveMessage.content = content;
           }
@@ -181,9 +154,7 @@ export const useChatWebSocket = (
 
       if (done) {
         setCurrentMessages((prevMessages: Message[]) => {
-          const message = prevMessages.find(
-            (message) => message.id === messageId
-          );
+          const message = prevMessages.find((message) => message.id === messageId);
           if (message) {
             message.done = true;
             message.modelName = selected_model_id || "";
@@ -209,9 +180,7 @@ export const useChatWebSocket = (
       switch (type) {
         case "status":
           setCurrentMessages((prevMessages: Message[]) => {
-            const message = prevMessages.find(
-              (message) => message.id === message_id
-            );
+            const message = prevMessages.find((message) => message.id === message_id);
             if (message) {
               message.done = eventData.done;
               message.content = eventData.content || "";
@@ -221,10 +190,7 @@ export const useChatWebSocket = (
           break;
 
         case "chat:completion":
-          handleChatCompletion(
-            (eventData.data as CompletionData) || (eventData as CompletionData),
-            message_id
-          );
+          handleChatCompletion((eventData.data as CompletionData) || (eventData as CompletionData), message_id);
           break;
 
         case "chat:message:delta":
@@ -232,9 +198,7 @@ export const useChatWebSocket = (
           if (eventData.content) {
             console.log("Chat message delta:", eventData.content);
             setCurrentMessages((prevMessages: Message[]) => {
-              const message = prevMessages.find(
-                (message) => message.id === message_id
-              );
+              const message = prevMessages.find((message) => message.id === message_id);
               if (message) {
                 message.content = message.content + eventData.content;
               }
@@ -267,10 +231,7 @@ export const useChatWebSocket = (
 
         case "error":
           updateMessage(message_id, {
-            content:
-              eventData.description ||
-              String(eventData.error) ||
-              "An error occurred",
+            content: eventData.description || String(eventData.error) || "An error occurred",
             done: true,
             error: true,
           });
