@@ -2,13 +2,15 @@ import { marked } from "marked";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import RegenerateIcon from "@/assets/icons/regenerate-icon.svg?react";
 import NearAIIcon from "@/assets/images/near-icon.svg?react";
 import VerifiedIcon from "@/assets/images/verified-2.svg?react";
+import { formatDate } from "@/lib/time";
 import markedExtension from "@/lib/utils/extension";
 import { processResponseContent, replaceTokens } from "@/lib/utils/markdown";
 import markedKatexExtension from "@/lib/utils/marked-katex-extension";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import type { ChatHistory } from "@/types";
+import type { ChatHistory, Message } from "@/types";
 import MarkdownTokens from "./MarkdownTokens";
 
 interface ResponseMessageProps {
@@ -21,6 +23,8 @@ interface ResponseMessageProps {
   saveMessage: (messageId: string, content: string) => void;
   deleteMessage: (messageId: string) => void;
   regenerateResponse: () => void;
+  showPreviousMessage: (message: Message) => void;
+  showNextMessage: (message: Message) => void;
 }
 
 const ResponseMessage: React.FC<ResponseMessageProps> = ({
@@ -31,6 +35,9 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
   webSearchEnabled,
   saveMessage,
   regenerateResponse,
+  showPreviousMessage,
+  showNextMessage,
+  siblings,
 }) => {
   const { settings } = useSettingsStore();
 
@@ -70,10 +77,6 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
     }
   };
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       handleCancel();
@@ -98,7 +101,7 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
   }, [message?.content]);
 
   if (!message) return null;
-  console.log("message", message);
+
   return (
     <div className="group flex w-full" id={`message-${message.id}`} dir={settings.chatDirection || "ltr"}>
       <div className="shrink-0 ltr:mr-2 rtl:ml-2">
@@ -118,7 +121,7 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
 
           {message.timestamp && (
             <div className="invisible ml-0.5 translate-y-[1px] self-center font-medium text-gray-400 text-xs first-letter:capitalize group-hover:visible">
-              <span className="line-clamp-1">{formatDate(message.timestamp)}</span>
+              <span className="line-clamp-1">{formatDate(message.timestamp * 1000)}</span>
             </div>
           )}
         </div>
@@ -191,23 +194,62 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
                     <MarkdownTokens tokens={tokens} id={`message-${message.id}`} />
                   </div>
                 ) : null}
-
-                {/* Citations would go here if needed */}
-                {/* Code executions would go here if needed */}
               </div>
             )}
           </div>
         </div>
 
-        {/* Action Buttons */}
         {!edit && (
           <div className="buttons mt-0.5 flex justify-start overflow-x-auto text-gray-600 dark:text-gray-500">
-            {/* Action buttons */}
+            {siblings && siblings.length > 0 && (
+              <>
+                <button
+                  className="self-center rounded-md p-1 transition hover:bg-black/5 hover:text-black dark:hover:bg-white/5 dark:hover:text-white"
+                  onClick={() => {
+                    showPreviousMessage(message);
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    className="size-3.5"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                  </svg>
+                </button>
+
+                <div className="min-w-fit self-center font-semibold text-sm tracking-widest dark:text-gray-100">
+                  {siblings.indexOf(message.id) + 1}/{siblings.length}
+                </div>
+
+                <button
+                  className="self-center rounded-md p-1 transition hover:bg-black/5 hover:text-black dark:hover:bg-white/5 dark:hover:text-white"
+                  onClick={() => {
+                    showNextMessage(message);
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    className="size-3.5"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                  </svg>
+                </button>
+              </>
+            )}
             {!readOnly && (
               <>
-                {/* Copy button */}
                 <button
-                  className={`${isLastMessage ? "visible" : "invisible group-hover:visible"} copy-response-button rounded-lg p-1.5 transition hover:bg-black/5 hover:text-black dark:hover:bg-white/5 dark:hover:text-white`}
+                  className={`${
+                    isLastMessage ? "visible" : "invisible group-hover:visible"
+                  } copy-response-button rounded-lg p-1.5 transition hover:bg-black/5 hover:text-black dark:hover:bg-white/5 dark:hover:text-white`}
                   onClick={() => {
                     copyToClipboard(message.content);
                   }}
@@ -229,26 +271,14 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
                   </svg>
                 </button>
 
-                {/* Regenerate button */}
                 <button
-                  className={`${isLastMessage ? "visible" : "invisible group-hover:visible"} rounded-lg p-1.5 transition hover:bg-black/5 hover:text-black dark:hover:bg-white/5 dark:hover:text-white`}
+                  className={`${
+                    isLastMessage ? "visible" : "invisible group-hover:visible"
+                  } rounded-lg p-1.5 transition hover:bg-black/5 hover:text-black dark:hover:bg-white/5 dark:hover:text-white`}
                   onClick={regenerateResponse}
                   title="Regenerate"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="2.3"
-                    stroke="currentColor"
-                    className="h-4 w-4"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                    />
-                  </svg>
+                  <RegenerateIcon />
                 </button>
               </>
             )}

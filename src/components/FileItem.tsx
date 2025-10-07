@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { decodeString, formatFileSize } from "@/lib/utils";
+import { formatFileSize } from "@/lib/index";
+import { decodeString } from "@/lib/time";
 import type { File } from "@/types";
 import Spinner from "./common/Spinner";
 import { Tooltip } from "./ui/tooltip";

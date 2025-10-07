@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { chatClient } from "@/api/chat/client";
 import { useChatById } from "@/api/chat/queries";
@@ -48,7 +49,7 @@ const Home: React.FC = () => {
       },
       {
         onSuccess: (data) => {
-          if (!currentChatId && data.chatId) {
+          if (!currentChatId && data?.chatId) {
             navigate(`/c/${data.chatId}`);
           }
         },
@@ -74,6 +75,44 @@ const Home: React.FC = () => {
     console.log("Regenerate response");
   };
 
+  const handleShowPreviousMessage = (message: Message) => {
+    if (message.parentId !== null) {
+      const messageId =
+        currentChat?.chat.history.messages[message.parentId].childrenIds[
+          Math.max(currentChat?.chat.history.messages[message.parentId].childrenIds.indexOf(message.id) - 1, 0)
+        ];
+      if (messageId) {
+        setCurrentMessages((prevMessages: Message[]) => {
+          const messageIndex = prevMessages.findIndex((m) => m.id === message.id);
+          if (messageIndex !== -1 && currentChat?.chat.history.messages[messageId]) {
+            prevMessages[messageIndex] = currentChat?.chat.history.messages[messageId];
+          }
+          return [...prevMessages];
+        });
+      }
+    }
+  };
+
+  const handleShowNextMessage = (message: Message) => {
+    if (!message.parentId) return;
+    const messageId =
+      currentChat?.chat.history.messages[message.parentId].childrenIds[
+        Math.min(
+          currentChat?.chat.history.messages[message.parentId].childrenIds.indexOf(message.id) + 1,
+          currentChat?.chat.history.messages[message.parentId].childrenIds.length - 1
+        )
+      ];
+    if (messageId) {
+      setCurrentMessages((prevMessages: Message[]) => {
+        const messageIndex = prevMessages.findIndex((m) => m.id === message.id);
+        if (messageIndex !== -1 && currentChat?.chat.history.messages[messageId]) {
+          prevMessages[messageIndex] = currentChat?.chat.history.messages[messageId];
+        }
+        return [...prevMessages];
+      });
+    }
+  };
+
   const handleMergeResponses = () => {
     console.log("Merge responses");
   };
@@ -83,17 +122,16 @@ const Home: React.FC = () => {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No token found");
 
-      // Validate
       if (!prompt && (!files || files.length === 0)) {
         throw new Error("Please enter a prompt");
       }
 
       const selectedModel = model || selectedModels[0];
       if (!selectedModel || selectedModel === "") {
-        throw new Error("Model not selected");
+        toast.error("Model not selected");
+        return;
       }
 
-      // Create user message
       const userMessageId = uuidv4();
       const userMessage: Message = {
         id: userMessageId,
@@ -107,11 +145,9 @@ const Home: React.FC = () => {
         done: true,
       };
 
-      // Add user message to store
       addMessage(userMessage);
       setCurrentMessages((prevMessages: Message[]) => [...prevMessages, userMessage]);
 
-      // Create assistant message
       const assistantMessageId = uuidv4();
       const modelInfo = models.find((m) => m.id === selectedModel);
       const assistantMessage: Message = {
@@ -127,7 +163,6 @@ const Home: React.FC = () => {
         done: false,
       };
 
-      // Add assistant message to store
       addMessage(assistantMessage);
       setCurrentMessages((prevMessages: Message[]) => [...prevMessages, assistantMessage]);
 
@@ -143,8 +178,8 @@ const Home: React.FC = () => {
         return prevMessages;
       });
       let localChatId = currentChatId;
+
       if (!localChatId) {
-        // Create new chat
         const newChatHistory: ChatHistory = {
           messages: {
             [userMessageId]: userMessage,
@@ -183,20 +218,16 @@ const Home: React.FC = () => {
       });
       console.log("updatedChat", updatedChat);
 
-      // Build messages array with full conversation history
       const allMessages = [...currentMessages, userMessage].map((msg) => ({
         role: msg.role,
         content: msg.content,
         ...(msg.files ? { files: msg.files } : {}),
       }));
 
-      // Get model item for the selected model
       const modelItem = models.find((m) => m.id === selectedModel);
 
-      // Determine if this is the first message in a new chat (for background tasks)
       const isFirstMessage = allMessages.length === 1;
 
-      // Send chat completion request with all required fields matching Svelte implementation
       const response = await fetch(`${TEMP_API_BASE_URL}/api/chat/completions`, {
         method: "POST",
         headers: {
@@ -254,14 +285,6 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     setCurrentChatId(chatId);
-
-    messagesContainerElement.current?.scrollIntoView({ behavior: "smooth" });
-
-    const element = document.getElementById("messages-container");
-    element?.scrollTo({
-      top: element.scrollHeight,
-      behavior: "smooth",
-    });
   }, [chatId]);
 
   if (isChatLoading) {
@@ -290,19 +313,18 @@ const Home: React.FC = () => {
       </>
     );
   }
-
-  // console.log(currentMessages, currentChat, currentMessages.length);
+  console.log("currentMessages", currentMessages);
   return (
     <div className="flex h-full flex-col bg-gray-900">
-      {/* Messages */}
       <Navbar />
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pt-8" id="messages-container">
-        {/* Messages */}
         {currentMessages.map((message, idx) => {
-          // Use the actual history from store instead of creating a mock
-          // This ensures all message operations work correctly with the backup
-          const siblings = currentMessages.map((m) => m.id);
-
+          const siblings =
+            currentChat?.chat.history.messages?.[message.parentId ?? ""]?.childrenIds ??
+            Object.values(currentChat?.chat.history.messages ?? {})
+              .filter((msg) => msg.parentId === null)
+              .map((msg) => msg.id);
+          console.log("siblings", message, siblings);
           if (message.role === "user") {
             return (
               <UserMessage
@@ -317,7 +339,6 @@ const Home: React.FC = () => {
               />
             );
           } else if (message.content === "" && !message.error) {
-            console.log("MessageSkeleton", message);
             return <MessageSkeleton key={message.id} />;
           } else {
             const hasMultipleResponses = message.childrenIds && message.childrenIds.length > 1;
@@ -326,7 +347,12 @@ const Home: React.FC = () => {
               return (
                 <MultiResponseMessages
                   key={message.id}
-                  history={currentChat?.chat.history || { messages: {}, currentId: null }}
+                  history={
+                    currentChat?.chat.history || {
+                      messages: {},
+                      currentId: null,
+                    }
+                  }
                   messageId={message.id}
                   isLastMessage={idx === currentMessages.length - 1}
                   readOnly={false}
@@ -335,13 +361,20 @@ const Home: React.FC = () => {
                   deleteMessage={handleDeleteMessage}
                   regenerateResponse={handleRegenerateResponse}
                   mergeResponses={handleMergeResponses}
+                  showPreviousMessage={handleShowPreviousMessage}
+                  showNextMessage={handleShowNextMessage}
                 />
               );
             } else {
               return (
                 <ResponseMessage
                   key={message.id}
-                  history={currentChat?.chat.history || { messages: {}, currentId: null }}
+                  history={
+                    currentChat?.chat.history || {
+                      messages: {},
+                      currentId: null,
+                    }
+                  }
                   messageId={message.id}
                   siblings={siblings}
                   isLastMessage={idx === currentMessages.length - 1}
@@ -350,6 +383,8 @@ const Home: React.FC = () => {
                   saveMessage={handleSaveMessage}
                   deleteMessage={handleDeleteMessage}
                   regenerateResponse={handleRegenerateResponse}
+                  showPreviousMessage={handleShowPreviousMessage}
+                  showNextMessage={handleShowNextMessage}
                 />
               );
             }

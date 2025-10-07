@@ -5,7 +5,7 @@ import ChatArrowDown from "@/assets/icons/chat-arrow-down.svg?react";
 import CloseIcon from "@/assets/icons/close-icon.svg?react";
 import NearAIIcon from "@/assets/icons/near-icon-green.svg?react";
 import PencilIcon from "@/assets/icons/pencil-icon.svg?react";
-import { cn, getTimeRange } from "@/lib/utils";
+import { cn, getTimeRange } from "@/lib/time";
 import { useChatStore } from "@/stores/useChatStore";
 import { useViewStore } from "@/stores/useViewStore";
 import type { ChatInfo } from "@/types";
@@ -104,7 +104,8 @@ const LeftSidebar: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="flex w-full flex-1 flex-col text-ellipsis whitespace-nowrap rounded-lg py-[6px] group-hover:bg-gray-100 dark:group-hover:bg-gray-950">
+
+            <div className="relative flex w-full flex-1 flex-col overflow-y-auto overflow-x-hidden text-ellipsis whitespace-nowrap rounded-lg py-[6px] group-hover:bg-gray-100 dark:group-hover:bg-gray-950">
               {isChatsOpen &&
                 chatsGroupedByFolder.map(([timeRange, chats], index) => (
                   <div key={timeRange}>

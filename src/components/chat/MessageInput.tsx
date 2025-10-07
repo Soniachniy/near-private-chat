@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { TEMP_API_BASE_URL } from "@/api/constants";
 import SendMessageIcon from "@/assets/icons/send-message.svg?react";
 import UserIcon from "@/assets/icons/user-icon.png";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/time";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useUserStore } from "@/stores/useUserStore";
 import { useViewStore } from "@/stores/useViewStore";
@@ -552,7 +552,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
             </div>
           )}
           <div
-            className={`${settings.widescreenMode ? "max-w-full" : "max-w-6xl"}w-full inset-x-0 mx-auto flex-1 grow px-2.5`}
+            className={`${
+              settings.widescreenMode ? "max-w-full" : "max-w-6xl"
+            }w-full inset-x-0 mx-auto flex-1 grow px-2.5`}
           >
             <div className="">
               <input

@@ -1,7 +1,8 @@
 import type React from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { ChatHistory } from "@/types";
+import { formatDate } from "@/lib/time";
+import type { ChatHistory, Message } from "@/types";
 import ResponseMessage from "./ResponseMessage";
 
 interface MultiResponseMessagesProps {
@@ -14,6 +15,8 @@ interface MultiResponseMessagesProps {
   deleteMessage: (messageId: string) => void;
   regenerateResponse: () => void;
   mergeResponses: () => void;
+  showPreviousMessage: (message: Message) => void;
+  showNextMessage: (message: Message) => void;
 }
 
 const MultiResponseMessages: React.FC<MultiResponseMessagesProps> = ({
@@ -22,7 +25,8 @@ const MultiResponseMessages: React.FC<MultiResponseMessagesProps> = ({
   isLastMessage,
   readOnly,
   webSearchEnabled,
-
+  showPreviousMessage,
+  showNextMessage,
   saveMessage,
 
   deleteMessage,
@@ -63,10 +67,6 @@ const MultiResponseMessages: React.FC<MultiResponseMessagesProps> = ({
     );
   };
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
   if (!parentMessage || responses.length === 0) return null;
 
   return (
@@ -77,7 +77,7 @@ const MultiResponseMessages: React.FC<MultiResponseMessagesProps> = ({
           <div className="font-medium text-gray-900 text-sm dark:text-gray-100">
             Multiple Responses ({responses.length})
           </div>
-          <div className="text-gray-500 text-xs">{formatDate(parentMessage.timestamp)}</div>
+          <div className="text-gray-500 text-xs">{formatDate(parentMessage.timestamp * 1000)}</div>
         </div>
         <div className="text-gray-600 text-sm dark:text-gray-400">{String(parentMessage.content)}</div>
       </div>
@@ -112,6 +112,8 @@ const MultiResponseMessages: React.FC<MultiResponseMessagesProps> = ({
           saveMessage={saveMessage}
           deleteMessage={deleteMessage}
           regenerateResponse={regenerateResponse}
+          showPreviousMessage={showPreviousMessage}
+          showNextMessage={showNextMessage}
         />
       )}
 

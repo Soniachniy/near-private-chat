@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CompactTooltip } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/time";
 import ConfirmDialog from "../ConfirmDialog";
 
 dayjs.extend(localizedFormat);

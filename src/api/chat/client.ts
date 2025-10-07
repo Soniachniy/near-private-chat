@@ -1,5 +1,5 @@
 import { ApiClient } from "@/api/base-client";
-import { getTimeRange } from "@/lib/utils";
+import { getTimeRange } from "@/lib/time";
 import type { Chat, ChatInfo, Tag } from "@/types";
 
 class ChatClient extends ApiClient {

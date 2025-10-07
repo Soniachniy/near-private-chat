@@ -2,7 +2,7 @@ import { Cog8ToothIcon, InformationCircleIcon } from "@heroicons/react/24/solid"
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/time";
 import AboutSettings from "./AboutSettings";
 import GeneralSettings from "./GeneralSettings";
 
@@ -19,8 +19,16 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
 
   const tabs = useMemo(
     () => [
-      { id: "general" as SettingsTab, label: t("General"), icon: Cog8ToothIcon },
-      { id: "about" as SettingsTab, label: t("About"), icon: InformationCircleIcon },
+      {
+        id: "general" as SettingsTab,
+        label: t("General"),
+        icon: Cog8ToothIcon,
+      },
+      {
+        id: "about" as SettingsTab,
+        label: t("About"),
+        icon: InformationCircleIcon,
+      },
     ],
     [t]
   );

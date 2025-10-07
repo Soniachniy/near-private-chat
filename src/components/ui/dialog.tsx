@@ -2,7 +2,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import type * as React from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/time";
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;

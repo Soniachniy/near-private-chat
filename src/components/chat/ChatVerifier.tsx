@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import IntelLogo from "@/assets/images/intel-2.svg";
 import NvidiaLogo from "@/assets/images/nvidia-2.svg";
 import SafeLogo from "@/assets/images/safe.svg";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/time";
 import { useChatStore } from "@/stores/useChatStore";
 import { useViewStore } from "@/stores/useViewStore";
 import MessagesVerifier from "./MessagesVerifier";
@@ -163,7 +163,12 @@ const ChatVerifier: React.FC = () => {
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   <MessagesVerifier
-                    history={currentChat.chat.history || { messages: {}, currentId: null }}
+                    history={
+                      currentChat.chat.history || {
+                        messages: {},
+                        currentId: null,
+                      }
+                    }
                     chatId={currentChat.id}
                   />
                 </div>

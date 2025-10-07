@@ -1,5 +1,13 @@
 import { type ClassValue, clsx } from "clsx";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import isToday from "dayjs/plugin/isToday";
+import isYesterday from "dayjs/plugin/isYesterday";
 import { twMerge } from "tailwind-merge";
+
+dayjs.extend(relativeTime);
+dayjs.extend(isToday);
+dayjs.extend(isYesterday);
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -23,7 +31,11 @@ export const getTimeRange = (timestamp: number | string) => {
 
   if (nowYear === dateYear && nowMonth === dateMonth && nowDate === dateDate) {
     return "Today";
-  } else if (nowYear === dateYear && nowMonth === dateMonth && nowDate - dateDate === 1) {
+  } else if (
+    nowYear === dateYear &&
+    nowMonth === dateMonth &&
+    nowDate - dateDate === 1
+  ) {
     return "Yesterday";
   } else if (diffDays <= 7) {
     return "Previous 7 days";
@@ -36,26 +48,23 @@ export const getTimeRange = (timestamp: number | string) => {
   }
 };
 
-export const formatFileSize = (size: number) => {
-  if (size == null) return "Unknown size";
-  if (typeof size !== "number" || size < 0) return "Invalid size";
-  if (size === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  let unitIndex = 0;
-
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    //biome-ignore lint/style/noParameterAssign: explanation
-    size /= 1024;
-    unitIndex++;
-  }
-  return `${size.toFixed(1)} ${units[unitIndex]}`;
-};
-
 export const decodeString = (str: string) => {
   try {
     return decodeURIComponent(str);
   } catch (e: unknown) {
     console.error(e);
     return str;
+  }
+};
+
+export const formatDate = (inputDate: number) => {
+  const date = dayjs(inputDate);
+
+  if (date.isToday()) {
+    return `Today at ${date.format("LT")}`;
+  } else if (date.isYesterday()) {
+    return `Yesterday at ${date.format("LT")}`;
+  } else {
+    return `${date.format("L")} at ${date.format("LT")}`;
   }
 };
