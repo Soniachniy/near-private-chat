@@ -1,0 +1,863 @@
+import type { Message } from '@/types';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
+import { useUserStore } from '@/stores/useUserStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+import UserIcon from '@/assets/icons/user-icon.png';
+import { cn } from '@/lib/utils';
+import { useViewStore } from '@/stores/useViewStore';
+import { TEMP_API_BASE_URL } from '@/api/constants';
+import SendMessageIcon from '@/assets/icons/send-message.svg?react';
+
+interface Model {
+	id: string;
+	name: string;
+	info?: {
+		meta?: {
+			profile_image_url?: string;
+			capabilities?: {
+				vision?: boolean;
+			};
+		};
+	};
+}
+
+interface FileItem {
+	type: 'file' | 'image' | 'collection';
+	file?: {
+		id: string;
+		meta?: {
+			collection_name: string;
+		};
+		collection_name?: string;
+		error?: string;
+	};
+	id?: string;
+	url: string;
+	name: string;
+	collection_name?: string;
+	status?: 'uploading' | 'uploaded';
+	size?: number;
+	error?: string;
+	itemId?: string;
+	context?: string;
+	collection?: boolean;
+}
+
+interface HistoryMessage {
+	done?: boolean;
+}
+
+interface History {
+	currentId?: string;
+	messages?: Record<string, HistoryMessage>;
+}
+
+interface MessageInputProps {
+	messages?: Message[];
+	transparentBackground?: boolean;
+	onChange?: (data: {
+		prompt: string;
+		files: FileItem[];
+		selectedToolIds: string[];
+		imageGenerationEnabled: boolean;
+		webSearchEnabled: boolean;
+	}) => void;
+	createMessagePair?: (prompt: string) => void;
+	stopResponse?: () => void;
+	autoScroll?: boolean;
+	atSelectedModel?: Model;
+	selectedModels?: string[];
+	history?: History;
+	taskIds?: string[] | null;
+	prompt?: string;
+	files?: FileItem[];
+	toolServers?: Record<string, unknown>[];
+	selectedToolIds?: string[];
+	imageGenerationEnabled?: boolean;
+	webSearchEnabled?: boolean;
+	codeInterpreterEnabled?: boolean;
+	placeholder?: string;
+	onSubmit?: (prompt: string) => void;
+	onUpload?: (detail: Record<string, unknown>) => void;
+}
+
+// Mock dependencies - these would need to be implemented or imported
+const WEBUI_BASE_URL = '';
+const WEBUI_API_BASE_URL = '';
+const PASTED_TEXT_CHARACTER_LIMIT = 50000;
+
+const uploadFile = async (token: string, file: File) => {
+	const data = new FormData();
+	data.append('file', file);
+	let error = null;
+
+	const res = await fetch(`${TEMP_API_BASE_URL}/api/v1/files/`, {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			authorization: `Bearer ${token}`
+		},
+		body: data
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = err.detail;
+			console.log(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
+const deleteFileById = async (fileId: string) => {
+	// Mock implementation
+	console.log('Deleting file:', fileId);
+};
+
+const compressImage = async (imageUrl: string) => {
+	// Mock implementation - would implement actual compression
+	return imageUrl;
+};
+
+const MessageInput: React.FC<MessageInputProps> = ({
+	messages,
+	transparentBackground = false,
+	onChange = () => {},
+	createMessagePair = () => {},
+	stopResponse = () => {},
+	autoScroll = false,
+	atSelectedModel,
+	selectedModels = [''],
+	history,
+	taskIds = null,
+	prompt: initialPrompt = '',
+	files: initialFiles = [],
+	toolServers = [],
+	selectedToolIds: initialSelectedToolIds = [],
+	imageGenerationEnabled: initialImageGenerationEnabled = false,
+	webSearchEnabled: initialWebSearchEnabled = false,
+	placeholder = '',
+	onSubmit = () => {}
+}) => {
+	const { user } = useUserStore();
+	const { settings } = useSettingsStore();
+	const [loaded, setLoaded] = useState(false);
+	const [isComposing, setIsComposing] = useState(false);
+	const [dragged, setDragged] = useState(false);
+	const [showTools, setShowTools] = useState(false);
+	const [prompt, setPrompt] = useState(initialPrompt);
+	const [files, setFiles] = useState<FileItem[]>(initialFiles);
+	const [selectedToolIds, setSelectedToolIds] = useState(initialSelectedToolIds);
+	const [imageGenerationEnabled, setImageGenerationEnabled] = useState(
+		initialImageGenerationEnabled
+	);
+	const [webSearchEnabled, setWebSearchEnabled] = useState(initialWebSearchEnabled);
+	const { isLeftSidebarOpen, isMobile } = useViewStore();
+	const filesInputRef = useRef<HTMLInputElement>(null);
+	const chatInputRef = useRef<HTMLTextAreaElement>(null);
+
+	const visionCapableModels = [...(atSelectedModel ? [atSelectedModel] : selectedModels)].filter(
+		() => atSelectedModel?.info?.meta?.capabilities?.vision ?? true
+	);
+
+	useEffect(() => {
+		onChange({
+			prompt,
+			files,
+			selectedToolIds,
+			imageGenerationEnabled,
+			webSearchEnabled
+		});
+	}, [prompt, files, selectedToolIds, imageGenerationEnabled, webSearchEnabled, onChange]);
+
+	const uploadFileHandler = useCallback(async (file: File, fullContext: boolean = false) => {
+		const token = localStorage.getItem('token');
+
+		if (!token) {
+			toast.error('No token found');
+			return null;
+		}
+		const tempItemId = uuidv4();
+		const fileItem: FileItem = {
+			type: 'file',
+			file: {
+				id: tempItemId,
+				meta: { collection_name: 'uploads' },
+				collection_name: 'uploads'
+			},
+			id: '',
+			url: '',
+			name: file.name,
+			collection_name: '',
+			status: 'uploading',
+			size: file.size,
+			error: '',
+			itemId: tempItemId,
+			...(fullContext ? { context: 'full' } : {})
+		};
+
+		if (fileItem.size === 0) {
+			toast.error('You cannot upload an empty file.');
+			return null;
+		}
+
+		setFiles((prev) => [...prev, fileItem]);
+
+		try {
+			const uploadedFile = await uploadFile(token, file);
+
+			if (uploadedFile) {
+				if (uploadedFile.error) {
+					toast.error(uploadedFile.error);
+				}
+
+				setFiles((prev) =>
+					prev.map((item) =>
+						item.itemId === tempItemId
+							? ({
+									...item,
+									status: 'uploaded' as const,
+									file: uploadedFile,
+									id: uploadedFile.id,
+									collection_name:
+										uploadedFile?.meta?.collection_name || uploadedFile?.collection_name || '',
+									url: `${WEBUI_API_BASE_URL}/files/${uploadedFile.id}`
+								} as FileItem)
+							: item
+					)
+				);
+			} else {
+				setFiles((prev) => prev.filter((item) => item.itemId !== tempItemId));
+			}
+		} catch (e) {
+			toast.error(`Upload failed: ${e}`);
+			setFiles((prev) => prev.filter((item) => item.itemId !== tempItemId));
+		}
+	}, []);
+
+	const inputFilesHandler = useCallback(
+		async (inputFiles: File[]) => {
+			inputFiles.forEach(async (file) => {
+				const maxFileSize = 10 * 1024 * 1024; // 10MB in bytes
+				if (file.size > maxFileSize) {
+					toast.error(`File size should not exceed 10 MB.`);
+					return;
+				}
+
+				if (
+					['image/gif', 'image/webp', 'image/jpeg', 'image/png', 'image/avif'].includes(file.type)
+				) {
+					if (visionCapableModels.length === 0) {
+						toast.error('Selected model(s) do not support image inputs');
+						return;
+					}
+
+					const reader = new FileReader();
+					reader.onload = async (event) => {
+						let imageUrl = event.target?.result as string;
+
+						// Use settings from store for image compression
+						if (settings.imageCompression) {
+							const width = settings.imageCompressionSize?.width;
+							const height = settings.imageCompressionSize?.height;
+
+							if (width || height) {
+								imageUrl = await compressImage(imageUrl);
+							}
+						}
+
+						setFiles((prev) => [
+							...prev,
+							{
+								type: 'image',
+								url: imageUrl,
+								name: file.name
+							}
+						]);
+					};
+					reader.readAsDataURL(file);
+				} else {
+					await uploadFileHandler(file);
+				}
+			});
+		},
+		[
+			settings.imageCompression,
+			settings.imageCompressionSize,
+			visionCapableModels.length,
+			uploadFileHandler
+		]
+	);
+
+	useEffect(() => {
+		setLoaded(true);
+		const chatInput = document.getElementById('chat-input');
+		setTimeout(() => chatInput?.focus(), 0);
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') {
+				setDragged(false);
+			}
+		};
+
+		const onDragOver = (e: DragEvent) => {
+			e.preventDefault();
+			if (e.dataTransfer?.types?.includes('Files')) {
+				setDragged(true);
+			} else {
+				setDragged(false);
+			}
+		};
+
+		const onDragLeave = () => {
+			setDragged(false);
+		};
+
+		const onDrop = async (e: DragEvent) => {
+			e.preventDefault();
+			if (e.dataTransfer?.files) {
+				const inputFiles = Array.from(e.dataTransfer.files);
+				if (inputFiles && inputFiles.length > 0) {
+					await inputFilesHandler(inputFiles);
+				}
+			}
+			setDragged(false);
+		};
+
+		window.addEventListener('keydown', handleKeyDown);
+		const dropzoneElement = document.getElementById('chat-container');
+		dropzoneElement?.addEventListener('dragover', onDragOver);
+		dropzoneElement?.addEventListener('drop', onDrop);
+		dropzoneElement?.addEventListener('dragleave', onDragLeave);
+
+		return () => {
+			window.removeEventListener('keydown', handleKeyDown);
+			dropzoneElement?.removeEventListener('dragover', onDragOver);
+			dropzoneElement?.removeEventListener('drop', onDrop);
+			dropzoneElement?.removeEventListener('dragleave', onDragLeave);
+		};
+	}, [inputFilesHandler]);
+
+	const scrollToBottom = () => {
+		const element = document.getElementById('messages-container');
+		element?.scrollTo({
+			top: element.scrollHeight,
+			behavior: 'smooth'
+		});
+	};
+
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		if (prompt.trim() || files.length > 0) {
+			onSubmit(prompt);
+			setPrompt('');
+		}
+	};
+
+	const handleKeyDown = async (e: React.KeyboardEvent) => {
+		const isCtrlPressed = e.ctrlKey || e.metaKey;
+
+		if (e.key === 'Escape') {
+			stopResponse();
+			setAtSelectedModel();
+			setSelectedToolIds([]);
+			setWebSearchEnabled(false);
+			setImageGenerationEnabled(false);
+		}
+
+		if (isCtrlPressed && e.key === 'Enter' && e.shiftKey) {
+			e.preventDefault();
+			createMessagePair(prompt);
+		}
+
+		if (prompt === '' && isCtrlPressed && e.key.toLowerCase() === 'r') {
+			e.preventDefault();
+			const regenerateButton = document.querySelector('.regenerate-response-button') as HTMLElement;
+			regenerateButton?.click();
+		}
+
+		if (prompt === '' && e.key === 'ArrowUp') {
+			e.preventDefault();
+			const userMessageElement = document.querySelector('.user-message') as HTMLElement;
+			if (userMessageElement) {
+				userMessageElement.scrollIntoView({ block: 'center' });
+				const editButton = document.querySelector('.edit-user-message-button') as HTMLElement;
+				editButton?.click();
+			}
+		}
+
+		const isMobile = window.innerWidth < 768;
+		if (!isMobile) {
+			if (isComposing) return;
+
+			const enterPressed =
+				(settings.ctrlEnterToSend ?? false)
+					? e.key === 'Enter' && isCtrlPressed
+					: e.key === 'Enter' && !e.shiftKey;
+
+			if (enterPressed) {
+				e.preventDefault();
+				if (prompt !== '' || files.length > 0) {
+					onSubmit(prompt);
+					setPrompt('');
+				}
+			}
+		}
+	};
+
+	const handlePaste = async (e: React.ClipboardEvent) => {
+		const clipboardData = e.clipboardData;
+
+		if (clipboardData && clipboardData.items) {
+			for (const item of Array.from(clipboardData.items)) {
+				if (item.type.indexOf('image') !== -1) {
+					const blob = item.getAsFile();
+					if (blob) {
+						const reader = new FileReader();
+						reader.onload = function (e) {
+							setFiles((prev) => [
+								...prev,
+								{
+									type: 'image',
+									url: e.target?.result as string,
+									name: 'pasted-image.png'
+								}
+							]);
+						};
+						reader.readAsDataURL(blob);
+					}
+				} else if (item.type === 'text/plain') {
+					if (settings.largeTextAsFile ?? false) {
+						const text = clipboardData.getData('text/plain');
+						if (text.length > PASTED_TEXT_CHARACTER_LIMIT) {
+							e.preventDefault();
+							const blob = new Blob([text], { type: 'text/plain' });
+							const file = new File([blob], `Pasted_Text_${Date.now()}.txt`, {
+								type: 'text/plain'
+							});
+							await uploadFileHandler(file, true);
+						}
+					}
+				}
+			}
+		}
+	};
+
+	const removeFile = async (fileIdx: number) => {
+		const file = files[fileIdx];
+		if (file.type !== 'collection' && !file?.collection) {
+			if (file.id) {
+				await deleteFileById(file.id);
+			}
+		}
+		setFiles((prev) => prev.filter((_, idx) => idx !== fileIdx));
+	};
+
+	const setAtSelectedModel = () => {
+		// This would be handled by parent component or store
+	};
+
+	if (!loaded) return null;
+
+	return (
+		<>
+			{/* Files Overlay */}
+			{dragged && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+					<div className="bg-gray-900 dark:bg-gray-900 rounded-lg p-8 text-center">
+						<div className="text-4xl mb-4">📁</div>
+						<div className="text-lg font-medium">Drop files here to upload</div>
+					</div>
+				</div>
+			)}
+
+			<div className={`w-full font-primary flex-row ${messages?.length === 0 ? 'flex-1' : ''}`}>
+				<div className="mx-auto inset-x-0 bg-transparent flex justify-center">
+					<div
+						className={`flex flex-col px-3 ${settings.widescreenMode ? 'max-w-full' : 'max-w-6xl'} w-full`}
+					>
+						<div className="relative">
+							{autoScroll === false && history?.currentId && (
+								<div className="absolute -top-12 left-0 right-0 flex justify-center z-30 pointer-events-none">
+									<button
+										className="bg-white border border-gray-100 dark:border-none dark:bg-white/20 p-1.5 rounded-full pointer-events-auto"
+										onClick={() => {
+											scrollToBottom();
+										}}
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 20 20"
+											fill="currentColor"
+											className="w-5 h-5"
+										>
+											<path
+												fillRule="evenodd"
+												d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z"
+												clipRule="evenodd"
+											/>
+										</svg>
+									</button>
+								</div>
+							)}
+						</div>
+
+						<div className="w-full relative">
+							{(atSelectedModel !== undefined ||
+								selectedToolIds.length > 0 ||
+								webSearchEnabled) && (
+								<div className="px-3 pb-0.5 pt-1.5 text-left w-full flex flex-col absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white dark:from-gray-900 z-10">
+									{atSelectedModel !== undefined && (
+										<div className="flex items-center justify-between w-full">
+											<div className="pl-[1px] flex items-center gap-2 text-sm dark:text-gray-500">
+												<img
+													crossOrigin="anonymous"
+													alt="model profile"
+													className="size-3.5 max-w-[28px] object-cover rounded-full"
+													src={
+														atSelectedModel?.info?.meta?.profile_image_url ??
+														`${WEBUI_BASE_URL}/static/favicon.png`
+													}
+												/>
+												<div className="translate-y-[0.5px]">
+													Talking to <span className="font-medium">{atSelectedModel.name}</span>
+												</div>
+											</div>
+											<div>
+												<button
+													className="flex items-center dark:text-gray-500"
+													onClick={() => setAtSelectedModel()}
+												>
+													<svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+														<path
+															fillRule="evenodd"
+															d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+															clipRule="evenodd"
+														/>
+													</svg>
+												</button>
+											</div>
+										</div>
+									)}
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+
+				<div
+					className={cn(
+						transparentBackground ? 'bg-transparent' : 'bg-gray-900 dark:bg-gray-900',
+						'flex flex-row items-center pb-[1rem] flex items-center md:pl-2.5'
+					)}
+				>
+					{!isMobile && !isLeftSidebarOpen && (
+						<div>
+							<button
+								className="select-none flex rounded-xl p-1.5 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								aria-label="User Menu"
+							>
+								<div className=" self-center">
+									<img
+										src={UserIcon}
+										className="size-7.5 object-cover rounded-full"
+										alt="User profile"
+										draggable="false"
+									/>
+								</div>
+							</button>
+						</div>
+					)}
+					<div
+						className={`${settings.widescreenMode ? 'max-w-full' : 'max-w-6xl'}w-full px-2.5 mx-auto flex-1 grow inset-x-0`}
+					>
+						<div className="">
+							<input
+								ref={filesInputRef}
+								type="file"
+								hidden
+								multiple
+								onChange={async (e) => {
+									if (e.target.files && e.target.files.length > 0) {
+										const inputFiles = Array.from(e.target.files);
+										await inputFilesHandler(inputFiles);
+									} else {
+										toast.error('File not found.');
+									}
+									if (filesInputRef.current) {
+										filesInputRef.current.value = '';
+									}
+								}}
+							/>
+
+							<form className="w-full flex gap-1.5" onSubmit={handleSubmit}>
+								<div
+									className="flex-1 flex flex-col relative w-full shadow-lg rounded-3xl border app-chat-input border-gray-50 dark:border-gray-850 hover:border-gray-100 focus-within:border-gray-100 hover:dark:border-gray-800 focus-within:dark:border-gray-800 transition px-1 bg-white/90 dark:bg-gray-400/5 dark:text-gray-100"
+									dir={settings.chatDirection ?? 'auto'}
+								>
+									{files.length > 0 && (
+										<div className="mx-2 mt-2.5 -mb-1 flex items-center flex-wrap gap-2">
+											{files.map((file, fileIdx) => (
+												<div key={fileIdx}>
+													{file.type === 'image' ? (
+														<div className="relative group">
+															<div className="relative flex items-center">
+																<img
+																	src={file.url}
+																	alt="input"
+																	className="size-14 rounded-xl object-cover"
+																/>
+																{(atSelectedModel
+																	? visionCapableModels.length === 0
+																	: selectedModels.length !== visionCapableModels.length) && (
+																	<div className="absolute top-1 left-1">
+																		<svg
+																			xmlns="http://www.w3.org/2000/svg"
+																			viewBox="0 0 24 24"
+																			fill="currentColor"
+																			className="size-4 fill-yellow-300"
+																		>
+																			<path
+																				fillRule="evenodd"
+																				d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z"
+																				clipRule="evenodd"
+																			/>
+																		</svg>
+																	</div>
+																)}
+															</div>
+															<div className="absolute -top-1 -right-1">
+																<button
+																	className="bg-white text-black border border-white rounded-full group-hover:visible invisible transition"
+																	type="button"
+																	onClick={() => removeFile(fileIdx)}
+																>
+																	<svg
+																		xmlns="http://www.w3.org/2000/svg"
+																		viewBox="0 0 20 20"
+																		fill="currentColor"
+																		className="size-4"
+																	>
+																		<path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+																	</svg>
+																</button>
+															</div>
+														</div>
+													) : (
+														<div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg p-2">
+															<div className="flex items-center gap-2 flex-1">
+																<svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+																	<path
+																		fillRule="evenodd"
+																		d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+																		clipRule="evenodd"
+																	/>
+																</svg>
+																<span className="text-sm">{file.name}</span>
+																{file.status === 'uploading' && (
+																	<div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+																)}
+															</div>
+															<button
+																onClick={() => removeFile(fileIdx)}
+																className="text-gray-500 hover:text-red-500"
+															>
+																<svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+																	<path
+																		fillRule="evenodd"
+																		d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+																		clipRule="evenodd"
+																	/>
+																</svg>
+															</button>
+														</div>
+													)}
+												</div>
+											))}
+										</div>
+									)}
+
+									<div className="px-2.5">
+										{(settings.richTextInput ?? true) ? (
+											<div
+												className="scrollbar-hidden text-left bg-transparent dark:text-gray-100 outline-hidden w-full pt-3 px-1 resize-none h-fit max-h-80 overflow-auto"
+												id="chat-input-container"
+											>
+												<textarea
+													ref={chatInputRef}
+													id="chat-input"
+													className="bg-transparent w-full min-h-[20px] resize-none outline-none border-none"
+													placeholder={placeholder || 'Send a Message'}
+													value={prompt}
+													onChange={(e) => setPrompt(e.target.value)}
+													onKeyDown={handleKeyDown}
+													onPaste={handlePaste}
+													onCompositionStart={() => setIsComposing(true)}
+													onCompositionEnd={() => setIsComposing(false)}
+													rows={1}
+													style={{ lineHeight: '1.5' }}
+												/>
+											</div>
+										) : (
+											<textarea
+												id="chat-input"
+												dir="auto"
+												ref={chatInputRef}
+												className="scrollbar-hidden bg-transparent dark:text-gray-100 outline-hidden w-full pt-3 px-1 resize-none"
+												placeholder={placeholder || 'Send a Message'}
+												value={prompt}
+												onChange={(e) => setPrompt(e.target.value)}
+												onKeyDown={handleKeyDown}
+												onPaste={handlePaste}
+												onCompositionStart={() => setIsComposing(true)}
+												onCompositionEnd={() => setIsComposing(false)}
+												rows={1}
+											/>
+										)}
+									</div>
+
+									<div className="flex justify-between mt-1 mb-2.5 mx-0.5 max-w-full" dir="ltr">
+										<div className="ml-1 self-end flex items-center flex-1 max-w-[80%] gap-0.5">
+											<div className="relative">
+												<button
+													className="bg-transparent hover:bg-gray-100 text-gray-800 dark:text-white dark:hover:bg-gray-800 transition rounded-full p-1.5 outline-hidden focus:outline-hidden"
+													type="button"
+													aria-label="More"
+													onClick={() => {
+														filesInputRef.current?.click();
+													}}
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														viewBox="0 0 20 20"
+														fill="currentColor"
+														className="size-5"
+													>
+														<path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+													</svg>
+												</button>
+											</div>
+
+											<div className="flex gap-1 items-center overflow-x-auto scrollbar-none flex-1">
+												{toolServers.length + selectedToolIds.length > 0 && (
+													<button
+														className="translate-y-[0.5px] flex gap-1 items-center text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg p-1 self-center transition"
+														aria-label="Available Tools"
+														type="button"
+														onClick={() => setShowTools(!showTools)}
+													>
+														<svg
+															className="size-4"
+															fill="none"
+															stroke="currentColor"
+															viewBox="0 0 24 24"
+														>
+															<path
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																strokeWidth={1.75}
+																d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+															/>
+															<path
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																strokeWidth={1.75}
+																d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+															/>
+														</svg>
+														<span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+															{toolServers.length + selectedToolIds.length}
+														</span>
+													</button>
+												)}
+
+												{user && (
+													<>
+														<button
+															onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+															type="button"
+															className={`px-1 py-0.5 flex gap-1.5 items-center text-xs rounded-full font-medium transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden border ${
+																webSearchEnabled
+																	? 'bg-blue-100 dark:bg-blue-500/20 border-blue-400/20 text-blue-500'
+																	: 'bg-transparent border-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+															}`}
+														>
+															<svg
+																className="size-5"
+																fill="none"
+																stroke="currentColor"
+																viewBox="0 0 24 24"
+															>
+																<path
+																	strokeLinecap="round"
+																	strokeLinejoin="round"
+																	strokeWidth={1.75}
+																	d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+																/>
+															</svg>
+															<span className="hidden xl:block whitespace-nowrap overflow-hidden text-ellipsis translate-y-[0.5px]">
+																Web Search
+															</span>
+														</button>
+													</>
+												)}
+											</div>
+										</div>
+
+										<div className="self-end flex space-x-1 mr-1 shrink-0">
+											{(taskIds && taskIds.length > 0) ||
+											(history?.currentId &&
+												history.messages?.[history.currentId]?.done !== true) ? (
+												<button
+													className="bg-white hover:bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-800 transition rounded-full p-1.5"
+													onClick={stopResponse}
+												>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														viewBox="0 0 24 24"
+														fill="currentColor"
+														className="size-5"
+													>
+														<path
+															fillRule="evenodd"
+															d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm6-2.438c0-.724.588-1.312 1.313-1.312h4.874c.725 0 1.313.588 1.313 1.313v4.874c0 .725-.588 1.313-1.313 1.313H9.564a1.312 1.312 0 01-1.313-1.313V9.564z"
+															clipRule="evenodd"
+														/>
+													</svg>
+												</button>
+											) : (
+												<button
+													id="send-message-button"
+													className={`${
+														!(prompt === '' && files.length === 0)
+															? 'bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100'
+															: 'text-white bg-gray-200 dark:text-gray-900 dark:bg-gray-700 disabled'
+													} transition rounded-full p-1.5 self-center`}
+													type="submit"
+													disabled={prompt === '' && files.length === 0}
+												>
+													<SendMessageIcon className="size-5" />
+												</button>
+											)}
+										</div>
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</>
+	);
+};
+
+export default MessageInput;
