@@ -1,14 +1,14 @@
-import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
-import { chatClient } from "../client";
+import { type UseQueryOptions, useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/api/query-keys";
 import type { Chat } from "@/types";
+import { chatClient } from "../client";
 
-type UseArchivedChatsOptions = Omit<UseQueryOptions<Chat[], Error>, 'queryKey' | 'queryFn'>;
+type UseArchivedChatsOptions = Omit<UseQueryOptions<Chat[], Error>, "queryKey" | "queryFn">;
 
 export const useArchivedChats = (options?: UseArchivedChatsOptions) => {
-	return useQuery({
-		queryKey: queryKeys.chat.archived,
-		queryFn: () => chatClient.getArchivedChatList(),
-		...options
-	});
+  return useQuery({
+    queryKey: queryKeys.chat.archived,
+    queryFn: () => chatClient.getArchivedChatList(),
+    ...options,
+  });
 };
