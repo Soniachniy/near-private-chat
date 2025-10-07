@@ -1,8 +1,8 @@
 import { type ClassValue, clsx } from "clsx";
 import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
 import isToday from "dayjs/plugin/isToday";
 import isYesterday from "dayjs/plugin/isYesterday";
+import relativeTime from "dayjs/plugin/relativeTime";
 import { twMerge } from "tailwind-merge";
 
 dayjs.extend(relativeTime);
@@ -31,11 +31,7 @@ export const getTimeRange = (timestamp: number | string) => {
 
   if (nowYear === dateYear && nowMonth === dateMonth && nowDate === dateDate) {
     return "Today";
-  } else if (
-    nowYear === dateYear &&
-    nowMonth === dateMonth &&
-    nowDate - dateDate === 1
-  ) {
+  } else if (nowYear === dateYear && nowMonth === dateMonth && nowDate - dateDate === 1) {
     return "Yesterday";
   } else if (diffDays <= 7) {
     return "Previous 7 days";
