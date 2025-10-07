@@ -20,10 +20,11 @@ export const replaceTokens = (content: string, sourceIds: string[] = [], char?: 
       .join("");
   };
 
-  // Apply replacements
+  //biome-ignore lint/style/noParameterAssign: explanation
   content = processOutsideCodeBlocks(content, (segment) => {
     tokens.forEach(({ regex, replacement }) => {
       if (replacement !== undefined && replacement !== null) {
+        //biome-ignore lint/style/noParameterAssign: explanation
         segment = segment.replace(regex, replacement);
       }
     });
@@ -31,6 +32,7 @@ export const replaceTokens = (content: string, sourceIds: string[] = [], char?: 
     if (Array.isArray(sourceIds)) {
       sourceIds.forEach((sourceId, idx) => {
         const regex = new RegExp(`\\[${idx + 1}\\]`, "g");
+        //biome-ignore lint/style/noParameterAssign: explanation
         segment = segment.replace(regex, `<source_id data="${idx + 1}" title="${sourceId}" />`);
       });
     }

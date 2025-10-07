@@ -1,31 +1,31 @@
-import type { SigningAlgorithm } from "./nearai/client";
+// import type { SigningAlgorithm } from "./nearai/client";
 
-// const CONFIG_KEY = "config";
-// const MODELS_KEY = "models";
-const NEARAI_KEY = "nearai";
+const CONFIG_KEY = "config";
+const MODELS_KEY = "models";
+// const NEARAI_KEY = "nearai";
 const AUTH_KEY = "auth";
 const CHAT_KEY = "chat";
 
 export const queryKeys = {
-  // config: {
-  //     all: [CONFIG_KEY],
-  // },
-
-  // models: {
-  //     all: [MODELS_KEY],
-  // },
-
-  nearai: {
-    all: [NEARAI_KEY],
-    modelAttestationReport: (model: string) => [NEARAI_KEY, "modelAttestationReport", model],
-    messageSignature: (model: string, chatCompletionId: string, signingAlgorithm: SigningAlgorithm) => [
-      NEARAI_KEY,
-      "messageSignature",
-      model,
-      chatCompletionId,
-      signingAlgorithm,
-    ],
+  config: {
+    all: [CONFIG_KEY],
   },
+
+  models: {
+    all: [MODELS_KEY],
+  },
+
+  // nearai: {
+  //   all: [NEARAI_KEY],
+  //   modelAttestationReport: (model: string) => [NEARAI_KEY, "modelAttestationReport", model],
+  //   messageSignature: (model: string, chatCompletionId: string, signingAlgorithm: SigningAlgorithm) => [
+  //     NEARAI_KEY,
+  //     "messageSignature",
+  //     model,
+  //     chatCompletionId,
+  //     signingAlgorithm,
+  //   ],
+  // },
 
   auth: {
     sessionUser: [AUTH_KEY, "sessionUser"],

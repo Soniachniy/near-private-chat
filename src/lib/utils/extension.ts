@@ -64,6 +64,7 @@ function detailsStart(src: string) {
   return src.match(/^<details>/) ? 0 : -1;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: explanation
 function detailsRenderer(token: any) {
   const attributesString = token.attributes
     ? Object.entries(token.attributes)

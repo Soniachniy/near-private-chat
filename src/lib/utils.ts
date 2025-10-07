@@ -44,6 +44,7 @@ export const formatFileSize = (size: number) => {
   let unitIndex = 0;
 
   while (size >= 1024 && unitIndex < units.length - 1) {
+    //biome-ignore lint/style/noParameterAssign: explanation
     size /= 1024;
     unitIndex++;
   }

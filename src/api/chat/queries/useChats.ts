@@ -14,7 +14,8 @@ export const useChats = (options?: UseChatsOptions) => {
   return useQuery({
     queryKey: queryKeys.chat.all,
     queryFn: async () => {
-      const chats = await chatClient.getAllChats(); // TODO: add pagination
+      const chats = await chatClient.getChatList(1); // TODO: add pagination
+      console.log("chats", chats);
       setChats(chats);
       return chats;
     },

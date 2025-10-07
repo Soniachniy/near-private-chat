@@ -43,9 +43,8 @@ const AdvancedParams = ({ admin = false, params, onChange }: AdvancedParamsProps
       {/* Function Calling */}
       <CycleParam
         label={t("Function Calling")}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         tooltip={t(
-          "Default mode works with a wider range of models by calling tools once before execution. Native mode leverages the model's built-in tool-calling capabilities, but requires the model to inherently support this feature." as any
+          "Default mode works with a wider range of models by calling tools once before execution. Native mode leverages the model’s built-in tool-calling capabilities, but requires the model to inherently support this feature."
         )}
         value={params.function_calling === "native" ? t("Native") : t("Default")}
         onCycle={toggleFunctionCalling}
