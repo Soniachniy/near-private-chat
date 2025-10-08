@@ -38,7 +38,7 @@ export interface Chat {
     messages: Message[];
     tags: string[];
     timestamp: number;
-    files: File[];
+    files: FileItem[];
   };
   updated_at: number;
   created_at: number;
@@ -63,7 +63,7 @@ export interface Message {
   model?: string;
   error?: boolean;
   sources?: unknown[];
-  files?: File[];
+  files?: FileItem[];
   usage?: {
     prompt_tokens?: number;
     completion_tokens?: number;
@@ -156,6 +156,9 @@ export interface Model {
     meta: {
       profile_image_url?: string;
       description?: string;
+      capabilities?: {
+        vision?: boolean;
+      };
       [key: string]: unknown;
     };
   };
@@ -325,15 +328,36 @@ export interface ChatHistory {
   currentId: string | null;
 }
 
-// File types
-export interface File {
-  id: string;
+export interface FileItem {
+  type: "file" | "image" | "collection";
+  file?: {
+    id: string;
+    meta?: {
+      collection_name: string;
+    };
+    collection_name?: string;
+    error?: string;
+  };
+  id?: string;
+  url: string;
   name: string;
-  size: number;
-  type: string;
-  url?: string;
-  content?: string;
+  collection_name?: string;
+  status?: "uploading" | "uploaded";
+  size?: number;
+  error?: string;
+  itemId?: string;
+  context?: string;
+  collection?: boolean;
   data?: {
     content?: string;
   };
+}
+
+export interface HistoryMessage {
+  done?: boolean;
+}
+
+export interface History {
+  currentId?: string;
+  messages?: Record<string, HistoryMessage>;
 }

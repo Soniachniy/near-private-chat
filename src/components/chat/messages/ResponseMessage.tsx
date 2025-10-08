@@ -201,7 +201,7 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
 
         {!edit && (
           <div className="buttons mt-0.5 flex justify-start overflow-x-auto text-gray-600 dark:text-gray-500">
-            {siblings && siblings.length > 0 && (
+            {siblings && siblings.length > 1 && (
               <>
                 <button
                   className="self-center rounded-md p-1 transition hover:bg-black/5 hover:text-black dark:hover:bg-white/5 dark:hover:text-white"

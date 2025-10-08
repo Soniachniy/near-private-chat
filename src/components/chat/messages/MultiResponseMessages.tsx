@@ -45,7 +45,7 @@ const MultiResponseMessages: React.FC<MultiResponseMessagesProps> = ({
 }) => {
   const message = history.messages[messageId];
   const parent = message?.parentId ? history.messages[message.parentId] : null;
-
+  console.log("multiple message ", message);
   const groupedMessageIds =
     parent?.models.reduce((acc: GroupedMessages, model: string, modelIdx: number) => {
       // Find all messages that are children of the parent message and have the same model
@@ -90,12 +90,6 @@ const MultiResponseMessages: React.FC<MultiResponseMessagesProps> = ({
     }, {} as GroupedMessagesIdx) ?? {};
 
   const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
-  // const [groupedMessageIds, setGroupedMessageIds] = useState<GroupedMessages>(
-  //   grouped ?? {}
-  // );
-  // const [groupedMessageIdsIdx, setGroupedMessageIdsIdx] =
-  //   useState<GroupedMessagesIdx>(indices ?? {});
-
   const { isMobile } = useViewStore();
 
   const parentMessage = history.messages[messageId];
@@ -118,7 +112,7 @@ const MultiResponseMessages: React.FC<MultiResponseMessagesProps> = ({
     return !(history.messages[_messageId]?.done ?? false);
   });
 
-  if (!parentMessage || responses.length === 0) return null;
+  if (!parentMessage) return null;
 
   return (
     <div>

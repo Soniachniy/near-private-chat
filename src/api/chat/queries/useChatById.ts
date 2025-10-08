@@ -25,7 +25,7 @@ export const createMessagesList = (history: ChatHistory, messageId: string): Mes
 };
 
 export const useChatById = ({ id, setCurrentMessages }: ChatIdProps, options?: UseChatByIdOptions) => {
-  const { setCurrentChat } = useChatStore();
+  const { setCurrentChat, setSelectedModels } = useChatStore();
 
   return useQuery({
     queryKey: queryKeys.chat.byId(id),
@@ -33,6 +33,7 @@ export const useChatById = ({ id, setCurrentMessages }: ChatIdProps, options?: U
       const chat = await chatClient.getChatById(id);
       setCurrentChat(chat);
       setCurrentMessages(createMessagesList(chat.chat.history, chat.chat.history.currentId));
+      setSelectedModels(chat.chat.models);
       return chat;
     },
     enabled: !!id,

@@ -8,6 +8,7 @@ import { chatClient } from "@/api/chat/client";
 import { useChatById } from "@/api/chat/queries";
 import { useChatWebSocket } from "@/api/chat/websocket/useChatWebSocket";
 import { TEMP_API_BASE_URL } from "@/api/constants";
+import { queryKeys } from "@/api/query-keys";
 import ChatPlaceholder from "@/components/chat/ChatPlaceholder";
 import MessageInput from "@/components/chat/MessageInput";
 import MessageSkeleton from "@/components/chat/MessageSkeleton";
@@ -16,13 +17,13 @@ import ResponseMessage from "@/components/chat/messages/ResponseMessage";
 import UserMessage from "@/components/chat/messages/UserMessage";
 import Navbar from "@/components/chat/Navbar";
 import { useChatStore } from "@/stores/useChatStore";
-import type { ChatHistory, Message } from "@/types";
+import type { ChatHistory, FileItem, Message } from "@/types";
 
 interface SendPromptParams {
   prompt: string;
   chatId?: string;
   model?: string;
-  files?: File[];
+  files?: FileItem[];
 }
 
 const Home: React.FC = () => {
@@ -34,18 +35,19 @@ const Home: React.FC = () => {
   const [currentMessages, setCurrentMessages] = useState<Message[]>([]);
   const { selectedModels, addMessage, updateMessage, currentChat, models } = useChatStore();
   const messagesContainerElement = useRef<HTMLDivElement>(null);
-  const { isLoading: isChatLoading } = useChatById(
+  const { isLoading: isChatLoading, isFetching } = useChatById(
     { id: currentChatId || "", setCurrentMessages },
     { enabled: !!currentChatId }
   );
   const { socket } = useChatWebSocket(setCurrentMessages);
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, files: FileItem[]) => {
     if (!content || !selectedModels.length) return;
     sendPromptMutation(
       {
         prompt: content,
         chatId: currentChatId,
+        files,
       },
       {
         onSuccess: (data) => {
@@ -131,11 +133,14 @@ const Home: React.FC = () => {
         toast.error("Model not selected");
         return;
       }
+      const filteredFiles = [...(currentChat?.chat.files ?? []), ...(files ?? [])].filter(
+        (item, index, array) => array.findIndex((i) => JSON.stringify(i) === JSON.stringify(item)) === index
+      );
 
       const userMessageId = uuidv4();
       const userMessage: Message = {
         id: userMessageId,
-        parentId: null,
+        parentId: currentChat?.chat.messages.length !== 0 ? (currentChat?.chat.messages.at(-1)?.id ?? null) : null,
         childrenIds: [],
         role: "user",
         content: prompt,
@@ -143,6 +148,7 @@ const Home: React.FC = () => {
         models: [selectedModel],
         modelName: "",
         done: true,
+        files: files ?? [],
       };
 
       addMessage(userMessage);
@@ -214,7 +220,7 @@ const Home: React.FC = () => {
         },
         models: selectedModels,
         params: currentChat?.chat.params,
-        files: currentChat?.chat.files,
+        files: filteredFiles,
       });
       console.log("updatedChat", updatedChat);
 
@@ -239,7 +245,7 @@ const Home: React.FC = () => {
           messages: allMessages,
           stream: true,
           params: {}, // Model-specific parameters
-          files: [], // Files attached to the chat
+          files: filteredFiles, // Files attached to the chat
           tool_ids: [], // Selected tool IDs
           tool_servers: [], // Tool servers configuration
           features: {
@@ -247,12 +253,11 @@ const Home: React.FC = () => {
             code_interpreter: false,
             web_search: false,
           },
-          variables: {}, // Template variables
-          model_item: modelItem || {}, // Full model object
+          variables: {},
+          model_item: modelItem || {},
           session_id: socket?.id || undefined,
           chat_id: localChatId,
-          id: assistantMessageId, // CRITICAL: Backend expects "id", not "message_id"
-          // Only include background_tasks for the first message
+          id: assistantMessageId,
           ...(isFirstMessage
             ? {
                 background_tasks: {
@@ -285,9 +290,12 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     setCurrentChatId(chatId);
+    queryClient.invalidateQueries({ queryKey: queryKeys.chat.byId(chatId!) });
+    const element = document.getElementById("messages-container");
+    element?.scrollIntoView({ behavior: "smooth" });
   }, [chatId]);
 
-  if (isChatLoading) {
+  if (isChatLoading || isFetching) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
@@ -304,10 +312,10 @@ const Home: React.FC = () => {
         <Navbar />
         <ChatPlaceholder
           submitVoice={async (voice) => {
-            await handleSendMessage(voice);
+            await handleSendMessage(voice, []);
           }}
           submitPrompt={async (prompt) => {
-            await handleSendMessage(prompt);
+            await handleSendMessage(prompt, []);
           }}
         />
       </>
@@ -317,14 +325,14 @@ const Home: React.FC = () => {
   return (
     <div className="flex h-full flex-col bg-gray-900">
       <Navbar />
-      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pt-8" id="messages-container">
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pt-8">
         {currentMessages.map((message, idx) => {
           const siblings =
             currentChat?.chat.history.messages?.[message.parentId ?? ""]?.childrenIds ??
             Object.values(currentChat?.chat.history.messages ?? {})
               .filter((msg) => msg.parentId === null)
               .map((msg) => msg.id);
-          console.log("siblings", message, siblings);
+
           if (message.role === "user") {
             return (
               <UserMessage
@@ -391,14 +399,10 @@ const Home: React.FC = () => {
             }
           }
         })}
-        <div ref={messagesContainerElement} />
+        <div ref={messagesContainerElement} id="messages-container" />
       </div>
 
-      <MessageInput
-        messages={currentChat?.chat.messages}
-        onSubmit={handleSendMessage}
-        createMessagePair={handleSendMessage}
-      />
+      <MessageInput messages={currentChat?.chat.messages} onSubmit={handleSendMessage} />
     </div>
   );
 };

@@ -9,51 +9,7 @@ import { cn } from "@/lib/time";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useUserStore } from "@/stores/useUserStore";
 import { useViewStore } from "@/stores/useViewStore";
-import type { Message } from "@/types";
-
-interface Model {
-  id: string;
-  name: string;
-  info?: {
-    meta?: {
-      profile_image_url?: string;
-      capabilities?: {
-        vision?: boolean;
-      };
-    };
-  };
-}
-
-interface FileItem {
-  type: "file" | "image" | "collection";
-  file?: {
-    id: string;
-    meta?: {
-      collection_name: string;
-    };
-    collection_name?: string;
-    error?: string;
-  };
-  id?: string;
-  url: string;
-  name: string;
-  collection_name?: string;
-  status?: "uploading" | "uploaded";
-  size?: number;
-  error?: string;
-  itemId?: string;
-  context?: string;
-  collection?: boolean;
-}
-
-interface HistoryMessage {
-  done?: boolean;
-}
-
-interface History {
-  currentId?: string;
-  messages?: Record<string, HistoryMessage>;
-}
+import type { FileItem, History, Message, Model } from "@/types";
 
 interface MessageInputProps {
   messages?: Message[];
@@ -80,13 +36,13 @@ interface MessageInputProps {
   webSearchEnabled?: boolean;
   codeInterpreterEnabled?: boolean;
   placeholder?: string;
-  onSubmit?: (prompt: string) => void;
+  onSubmit: (prompt: string, files: FileItem[]) => Promise<void>;
   onUpload?: (detail: Record<string, unknown>) => void;
 }
 
 // Mock dependencies - these would need to be implemented or imported
 const WEBUI_BASE_URL = "";
-const WEBUI_API_BASE_URL = "";
+
 const PASTED_TEXT_CHARACTER_LIMIT = 50000;
 
 const uploadFile = async (token: string, file: File) => {
@@ -147,7 +103,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   imageGenerationEnabled: initialImageGenerationEnabled = false,
   webSearchEnabled: initialWebSearchEnabled = false,
   placeholder = "",
-  onSubmit = () => {},
+  onSubmit,
 }) => {
   const { user } = useUserStore();
   const { settings } = useSettingsStore();
@@ -228,7 +184,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                   file: uploadedFile,
                   id: uploadedFile.id,
                   collection_name: uploadedFile?.meta?.collection_name || uploadedFile?.collection_name || "",
-                  url: `${WEBUI_API_BASE_URL}/files/${uploadedFile.id}`,
+                  url: `/api/v1/files/${uploadedFile.id}`,
                 } as FileItem)
               : item
           )
@@ -349,8 +305,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (prompt.trim() || files.length > 0) {
-      onSubmit(prompt);
+      onSubmit(prompt, files);
       setPrompt("");
+      setFiles([]);
     }
   };
 
@@ -396,7 +353,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
       if (enterPressed) {
         e.preventDefault();
         if (prompt !== "" || files.length > 0) {
-          onSubmit(prompt);
+          onSubmit(prompt, files);
+          setFiles([]);
           setPrompt("");
         }
       }
