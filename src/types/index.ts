@@ -70,6 +70,12 @@ export interface Message {
     total_tokens?: number;
   };
   statusHistory?: unknown[];
+  modelIdx?: number;
+  merged?: {
+    timestamp: number;
+    content: string;
+    status: boolean;
+  };
 }
 
 export interface ChatHistory {

@@ -71,8 +71,8 @@ const Home: React.FC = () => {
     console.log("Delete message:", messageId);
   };
 
-  const handleRegenerateResponse = () => {
-    console.log("Regenerate response");
+  const handleRegenerateResponse = async (message: Message) => {
+    console.log("Regenerate response", message);
   };
 
   const handleShowPreviousMessage = (message: Message) => {
@@ -341,9 +341,10 @@ const Home: React.FC = () => {
           } else if (message.content === "" && !message.error) {
             return <MessageSkeleton key={message.id} />;
           } else {
-            const hasMultipleResponses = message.childrenIds && message.childrenIds.length > 1;
+            const hasMultipleModels =
+              message.parentId && (currentChat?.chat.history.messages[message.parentId]?.models.length ?? 1) > 1;
 
-            if (hasMultipleResponses) {
+            if (hasMultipleModels) {
               return (
                 <MultiResponseMessages
                   key={message.id}

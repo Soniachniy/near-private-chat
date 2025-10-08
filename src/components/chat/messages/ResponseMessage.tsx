@@ -22,7 +22,7 @@ interface ResponseMessageProps {
   webSearchEnabled: boolean;
   saveMessage: (messageId: string, content: string) => void;
   deleteMessage: (messageId: string) => void;
-  regenerateResponse: () => void;
+  regenerateResponse: (message: Message) => Promise<void>;
   showPreviousMessage: (message: Message) => void;
   showNextMessage: (message: Message) => void;
 }
@@ -275,7 +275,7 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
                   className={`${
                     isLastMessage ? "visible" : "invisible group-hover:visible"
                   } rounded-lg p-1.5 transition hover:bg-black/5 hover:text-black dark:hover:bg-white/5 dark:hover:text-white`}
-                  onClick={regenerateResponse}
+                  onClick={() => regenerateResponse(message)}
                   title="Regenerate"
                 >
                   <RegenerateIcon />
