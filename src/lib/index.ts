@@ -64,8 +64,8 @@ export const createMessagesList = (history: ChatHistory, messageId: string): Mes
   }
 };
 
-export const formatFileSize = (size: number) => {
-  if (size == null) return "Unknown size";
+export const formatFileSize = (size?: number) => {
+  if (size == null || size === undefined) return "Unknown size";
   if (typeof size !== "number" || size < 0) return "Invalid size";
   if (size === 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB"];

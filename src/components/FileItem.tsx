@@ -1,18 +1,18 @@
 import { useState } from "react";
 import { formatFileSize } from "@/lib/index";
 import { decodeString } from "@/lib/time";
-import type { File } from "@/types";
+import type { FileItem } from "@/types";
 import Spinner from "./common/Spinner";
 import { Tooltip } from "./ui/tooltip";
 
-export default function FileItem({
+export default function FileItemComponent({
   file,
   smallView = false,
   loading = false,
   dismissible = false,
   onDismiss = () => {},
 }: {
-  file: File;
+  file: FileItem;
   smallView?: boolean;
   loading?: boolean;
   dismissible?: boolean;

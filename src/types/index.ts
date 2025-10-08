@@ -329,7 +329,7 @@ export interface ChatHistory {
 }
 
 export interface FileItem {
-  type: "file" | "image" | "collection";
+  type: "file" | "image" | "collection" | "doc";
   file?: {
     id: string;
     meta?: {

@@ -40,7 +40,7 @@ const MultiResponseMessages: React.FC<MultiResponseMessagesProps> = ({
   showNextMessage,
   saveMessage,
   deleteMessage,
-  regenerateResponse,
+
   mergeResponses,
 }) => {
   const message = history.messages[messageId];
