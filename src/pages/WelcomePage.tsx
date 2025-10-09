@@ -4,6 +4,7 @@ import ChevronDown from "@/assets/icons/chevron-welcome.svg?react";
 import NearAIIcon from "@/assets/icons/near-icon-green.svg?react";
 import ChatPlaceholder from "@/components/chat/ChatPlaceholder";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
+import { APP_ROUTES } from "./routes";
 
 const WelcomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,15 +12,14 @@ const WelcomePage: React.FC = () => {
   const gotoAuth = async () => {
     const token = localStorage.getItem("token");
     if (token) {
-      navigate("/");
+      navigate(APP_ROUTES.HOME);
     } else {
-      navigate("/auth");
+      navigate(APP_ROUTES.AUTH);
     }
   };
 
   return (
     <div className="flex h-screen max-h-[100dvh] w-full max-w-full flex-col text-gray-700 dark:bg-gray-900 dark:text-gray-100">
-      {/* Model selector */}
       <div className="absolute top-0 left-0 flex w-full items-center justify-between p-4">
         <DropdownMenu>
           <DropdownMenuTrigger>

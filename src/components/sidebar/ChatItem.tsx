@@ -2,6 +2,7 @@ import { CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { useRenameChat } from "@/api/chat/queries";
+import { cn } from "@/lib/time";
 import { toChatRoute } from "@/pages/routes";
 import type { ChatInfo } from "@/types";
 import ChatMenu from "../sidebar/ChatMenu";
@@ -10,14 +11,16 @@ import { CompactTooltip } from "../ui/tooltip";
 type ChatItemProps = {
   chat: ChatInfo;
   isCurrentChat: boolean;
+  isPinned?: boolean;
 };
 
-const ChatItem = ({ chat, isCurrentChat }: ChatItemProps) => {
+const ChatItem = ({ chat, isCurrentChat, isPinned }: ChatItemProps) => {
   const [showRename, setShowRename] = useState(false);
   const renameRef = useRef<HTMLInputElement>(null);
   const [renameInput, setRenameInput] = useState(chat.title);
   const { mutate: renameChat } = useRenameChat();
 
+  console.log("isPinned", { isPinned, isCurrentChat });
   const confirmRename = () => {
     renameChat({ id: chat.id, title: renameInput });
     setShowRename(false);
@@ -37,10 +40,10 @@ const ChatItem = ({ chat, isCurrentChat }: ChatItemProps) => {
   return (
     <div className="group relative w-full" draggable="true">
       <Link
-        className={
-          `flex w-full justify-between text-ellipsis whitespace-nowrap rounded-lg px-[11px] py-[6px]` +
-          (isCurrentChat ? "bg-[#00ec9714]" : "")
-        }
+        className={cn(
+          "flex w-full justify-between text-ellipsis whitespace-nowrap rounded-lg px-[11px] py-[6px]",
+          isCurrentChat && "bg-[#00ec9714]"
+        )}
         to={toChatRoute(chat.id)}
         draggable="false"
       >
@@ -74,7 +77,7 @@ const ChatItem = ({ chat, isCurrentChat }: ChatItemProps) => {
                 {chat.title}
               </div>
             </div>
-            <ChatMenu chat={chat} handleRename={handleRename} />
+            <ChatMenu chat={chat} handleRename={handleRename} isPinned={isPinned} />
           </>
         )}
       </Link>

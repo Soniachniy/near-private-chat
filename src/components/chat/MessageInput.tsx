@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { TEMP_API_BASE_URL } from "@/api/constants";
 import SendMessageIcon from "@/assets/icons/send-message.svg?react";
-import UserIcon from "@/assets/icons/user-icon.png";
 import { cn } from "@/lib/time";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useUserStore } from "@/stores/useUserStore";
@@ -531,7 +530,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         <div
           className={cn(
             transparentBackground ? "bg-transparent" : "bg-gray-900 dark:bg-gray-900",
-            "flex flex flex-row items-center items-center pb-[1rem] md:pl-2.5"
+            "flex flex-row items-center pb-[1rem] md:pl-2.5"
           )}
         >
           {!isMobile && !isLeftSidebarOpen && (
@@ -542,7 +541,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
               >
                 <div className="self-center">
                   <img
-                    src={UserIcon}
+                    src={user?.profile_image_url || "/user.png"}
                     className="size-7.5 rounded-full object-cover"
                     alt="User profile"
                     draggable="false"

@@ -12,13 +12,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { chatClient } from "@/api/chat/client";
-import {
-  useArchiveChat,
-  useChatPinnedStatus,
-  useCloneChat,
-  useDeleteChat,
-  useTogglePinnedStatus,
-} from "@/api/chat/queries";
+import { useArchiveChat, useCloneChat, useDeleteChat, useTogglePinnedStatus } from "@/api/chat/queries";
 import EllipsisHorizontal from "@/assets/icons/ellipsis-horizontal.svg?react";
 import {
   DropdownMenu,
@@ -37,12 +31,12 @@ import ConfirmDialog from "../common/dialogs/ConfirmDialog";
 type ChatMenuProps = {
   chat: ChatInfo;
   handleRename: () => void;
+  isPinned?: boolean;
 };
 
-export default function ChatMenu({ chat, handleRename }: ChatMenuProps) {
+export default function ChatMenu({ chat, handleRename, isPinned }: ChatMenuProps) {
   const { t } = useTranslation("translation", { useSuspense: false });
   const { settings } = useSettingsStore();
-  const { data: isPinned } = useChatPinnedStatus({ id: chat.id });
   const { mutate: toggleChatPinnedStatusById } = useTogglePinnedStatus();
   const { mutate: cloneChatById } = useCloneChat();
   const { mutate: archiveChatById } = useArchiveChat();
