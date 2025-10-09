@@ -1,15 +1,61 @@
 export type OAuth2Provider = "google" | "github" | "microsoft" | "oidc";
 
+export type UserRole = "user" | "admin" | "pending";
+
+export interface User {
+  api_key?: string;
+  created_at: number;
+  email: string;
+  id: string;
+  info?: unknown; //TODO
+  last_active_at: number;
+  name: string;
+  oauth_sub?: string;
+  profile_image_url?: string;
+  role: UserRole;
+  settings?: unknown; //TODO
+  updated_at: number;
+}
+
 export interface SessionUser {
   id: string;
   name: string;
   email: string;
-  role: "user" | "admin";
+  role: UserRole;
   profile_image_url?: string;
-  permissions?: {
-    chat?: {
-      temporary?: boolean;
-      temporary_enforced?: boolean;
+  token: string;
+  token_type: string; // Bearer
+  expires_at: string | null;
+  permissions: {
+    workspace: {
+      models: boolean;
+      knowledge: boolean;
+      prompts: boolean;
+      tools: boolean;
+    };
+    sharing: {
+      public_models: boolean;
+      public_knowledge: boolean;
+      public_prompts: boolean;
+      public_tools: boolean;
+    };
+    chat: {
+      controls: boolean;
+      file_upload: boolean;
+      delete: boolean;
+      edit: boolean;
+      stt: boolean;
+      tts: boolean;
+      call: boolean;
+      multiple_models: boolean;
+      temporary: boolean;
+      temporary_enforced: boolean;
+    };
+    features: {
+      direct_tool_servers: boolean;
+      web_search: boolean;
+      image_generation: boolean;
+      code_interpreter: boolean;
     };
   };
 }

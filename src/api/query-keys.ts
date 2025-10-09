@@ -5,6 +5,7 @@ const MODELS_KEY = "models";
 // const NEARAI_KEY = "nearai";
 const AUTH_KEY = "auth";
 const CHAT_KEY = "chat";
+const USERS_KEY = "users";
 
 export const queryKeys = {
   config: {
@@ -47,5 +48,10 @@ export const queryKeys = {
     byShareId: (shareId: string) => [CHAT_KEY, "byShareId", shareId],
     pinnedStatus: (id: string) => [CHAT_KEY, "pinnedStatus", id],
     tags: (id: string) => [CHAT_KEY, "tags", id],
+  },
+
+  users: {
+    all: [USERS_KEY],
+    detail: (id: string) => [USERS_KEY, "detail", id],
   },
 } as const;

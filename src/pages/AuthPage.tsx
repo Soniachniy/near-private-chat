@@ -39,22 +39,16 @@ const AuthPage: React.FC = () => {
 
   return (
     <div className="relative">
-      {/* Logo */}
       <div className="fixed z-50 m-10">
-        <div className="flex space-x-2">
-          <div className="self-center">
-            <NearAIIcon className="h-6 w-6" />
-          </div>
-        </div>
+        <NearAIIcon className="h-6 w-6" />
       </div>
 
-      <div className="fixed z-50 flex min-h-screen w-full justify-center bg-transparent font-primary text-black dark:text-white">
-        <div className="flex min-h-screen w-full flex-col px-10 text-center sm:max-w-md">
-          {/* Auto sign-in for trusted header or disabled auth */}
+      <div className="flex justify-center bg-transparent font-primary text-black dark:text-white">
+        <div className="flex min-h-screen flex-col px-10 sm:max-w-md">
           {config.features?.auth_trusted_header || config.features?.auth === false ? (
             <div className="my-auto w-full pb-10">
               <div className="flex items-center justify-center gap-3 text-center font-semibold text-xl sm:text-2xl dark:text-gray-200">
-                <div>Signing in to {config.name}</div>
+                <p className="text-center">Signing in to {config.name}</p>
                 <div>
                   <Spinner />
                 </div>
@@ -63,16 +57,15 @@ const AuthPage: React.FC = () => {
           ) : (
             <div className="my-auto w-full pb-10 dark:text-gray-100">
               <div className="mb-1">
-                <div className="font-medium text-2xl">Sign in to {config.name}</div>
+                <p className="font-medium text-2xl">Sign in to {config.name}</p>
 
                 {config.onboarding && (
-                  <div className="mt-1 font-medium text-gray-500 text-xs">
+                  <p className="mt-1 font-medium text-gray-500 text-xs">
                     ⓘ {config.name} does not make any external connections, and your data stays securely on your locally
                     hosted server.
-                  </div>
+                  </p>
                 )}
               </div>
-              {/* OAuth Providers */}
 
               <hr className="my-4 h-px w-full border-0 bg-gray-700/10 dark:bg-gray-100/10" />
               <div className="flex flex-col space-y-2">
@@ -92,7 +85,6 @@ const AuthPage: React.FC = () => {
                 </button>
               </div>
 
-              {/* Terms and Privacy Checkbox */}
               <label className="flex cursor-pointer items-start pt-10 text-xs">
                 <input
                   className="sr-only"

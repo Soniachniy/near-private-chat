@@ -1,6 +1,7 @@
 import type React from "react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { usePinnedChats } from "@/api/chat/queries";
 import ChatArrowDown from "@/assets/icons/chat-arrow-down.svg?react";
 import CloseIcon from "@/assets/icons/close-icon.svg?react";
 import NearAIIcon from "@/assets/icons/near-icon-green.svg?react";
@@ -16,23 +17,41 @@ const LeftSidebar: React.FC = () => {
   const { t } = useTranslation("translation", { useSuspense: false });
   const { isLeftSidebarOpen, setIsLeftSidebarOpen } = useViewStore();
   const { chats, currentChat } = useChatStore();
+  const { data: pinnedChatsData } = usePinnedChats();
+  const [isChatsOpen, setIsChatsOpen] = useState(true);
+  const [isPinnedChatsOpen, setIsPinnedChatsOpen] = useState(true);
+
+  const pinnedChats = useMemo<ChatInfo[]>(() => {
+    if (!pinnedChatsData) return [];
+    return pinnedChatsData.map((chat) => ({
+      id: chat.id,
+      content: "",
+      title: chat.title,
+      created_at: chat.created_at,
+      updated_at: String(chat.updated_at),
+    }));
+  }, [pinnedChatsData]);
+
+  const pinnedChatIds = useMemo(() => new Set(pinnedChats.map((chat) => chat.id)), [pinnedChats]);
 
   const chatsGroupedByFolder = useMemo(
     () =>
       Object.entries(
-        chats?.reduce(
-          (acc, chat) => {
-            const timeRange = getTimeRange(chat.updated_at);
-            acc[timeRange] = [...(acc[timeRange] || []), chat];
-            return acc;
-          },
-          {} as Record<string, ChatInfo[]>
-        )
+        chats
+          ?.filter((chat) => !pinnedChatIds.has(chat.id))
+          .reduce(
+            (acc, chat) => {
+              const timeRange = getTimeRange(chat.updated_at);
+              acc[timeRange] = [...(acc[timeRange] || []), chat];
+              return acc;
+            },
+            {} as Record<string, ChatInfo[]>
+          ) || {}
       ),
-    [chats]
+    [chats, pinnedChatIds]
   );
 
-  const [isChatsOpen, setIsChatsOpen] = useState(true);
+  console.log("chatsGroupedByFolder", chatsGroupedByFolder);
 
   return (
     <nav className="top-0 left-0 z-50 shrink-0 overflow-x-hidden text-sm transition-width duration-200 ease-in-out">
@@ -55,7 +74,6 @@ const LeftSidebar: React.FC = () => {
               isLeftSidebarOpen ? "" : "invisible"
             }`}
           >
-            {/* Top section */}
             <div className="flex flex-col items-center justify-between px-2">
               <div className="my-4 flex w-full justify-between px-2">
                 <button
@@ -103,28 +121,59 @@ const LeftSidebar: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="relative flex w-full flex-1 flex-col overflow-y-auto overflow-x-hidden text-ellipsis whitespace-nowrap rounded-lg py-[6px] group-hover:bg-gray-100 dark:group-hover:bg-gray-950">
-              {isChatsOpen &&
-                chatsGroupedByFolder.map(([timeRange, chats], index) => (
-                  <div key={timeRange}>
-                    <div
-                      className={cn(
-                        "5 w-full pb-1.5 pl-2.5 font-medium text-gray-500 text-xs dark:text-gray-500",
-                        index !== 0 && "pt-5"
-                      )}
-                    >
-                      {timeRange}
+              {isChatsOpen && (
+                <>
+                  {pinnedChats.length > 0 && (
+                    <div className="w-full cursor-pointer" onClick={() => setIsPinnedChatsOpen(!isPinnedChatsOpen)}>
+                      <div>
+                        <div className="flex items-start justify-between">
+                          <div className="group relative flex w-full items-center justify-between rounded-md text-gray-500 transition">
+                            <button className="flex w-full items-center gap-1.5 py-1.5 pl-2 font-medium text-xs">
+                              <div className="size-3 text-gray-300 dark:text-gray-600">
+                                <ChatArrowDown stroke="#676767" className={!isPinnedChatsOpen ? "rotate-270" : ""} />
+                              </div>
+                              <div className="translate-y-[0.5px]">{t("Pinned")}</div>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    {chats.map((chat) => (
-                      <ChatItem key={chat.id} chat={chat} isCurrentChat={chat.id === currentChat?.id} />
+                  )}
+                  <div className="relative flex w-full flex-1 flex-col overflow-y-auto overflow-x-hidden text-ellipsis whitespace-nowrap rounded-lg py-[6px] group-hover:bg-gray-100 dark:group-hover:bg-gray-950">
+                    {isPinnedChatsOpen && pinnedChats.length > 0 && (
+                      <div className="mb-2">
+                        {pinnedChats.map((chat) => (
+                          <ChatItem
+                            key={chat.id}
+                            chat={chat}
+                            isCurrentChat={chat.id === currentChat?.id}
+                            isPinned={true}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {chatsGroupedByFolder.map(([timeRange, chats], index) => (
+                      <div key={timeRange}>
+                        <div
+                          className={cn(
+                            "5 w-full pb-1.5 pl-2.5 font-medium text-gray-500 text-xs dark:text-gray-500",
+                            index !== 0 && "pt-5"
+                          )}
+                        >
+                          {timeRange}
+                        </div>
+                        {chats.map((chat) => (
+                          <ChatItem key={chat.id} chat={chat} isCurrentChat={chat.id === currentChat?.id} />
+                        ))}
+                      </div>
                     ))}
                   </div>
-                ))}
+                </>
+              )}
             </div>
 
-            {/* Bottom section */}
             <div className="px-2">
               <UserMenu />
             </div>
