@@ -22,18 +22,18 @@ function TabbedContent<T extends ReadonlyArray<TabLike>>({ tabs, defaultTab, cla
 
   return (
     <div className={cn("grid grid-cols-1 gap-4 md:grid-cols-[10rem_1fr]", className)}>
-      <div className="flex overflow-x-auto md:flex-col md:overflow-x-visible">
+      <div className="flex gap-2 overflow-x-auto md:flex-col md:gap-0 md:overflow-x-visible">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex min-w-fit rounded-lg px-0.5 py-1 outline-none ring-none transition-colors hover:text-foreground",
+              "flex min-w-fit items-center gap-2 rounded-lg px-0.5 py-1 outline-none ring-none transition-colors hover:text-foreground",
               activeTab === tab.id ? "font-medium text-foreground" : "text-muted-foreground"
             )}
           >
-            <tab.icon className="mr-2 h-4 w-4" />
+            <tab.icon className="h-4 w-4" />
             <p className="font-medium text-sm">{tab.label}</p>
           </button>
         ))}

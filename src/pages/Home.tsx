@@ -16,6 +16,7 @@ import MultiResponseMessages from "@/components/chat/messages/MultiResponseMessa
 import ResponseMessage from "@/components/chat/messages/ResponseMessage";
 import UserMessage from "@/components/chat/messages/UserMessage";
 import Navbar from "@/components/chat/Navbar";
+import LoadingScreen from "@/components/common/LoadingScreen";
 import { useChatStore } from "@/stores/useChatStore";
 import type { ChatHistory, FileItem, Message } from "@/types";
 
@@ -296,14 +297,7 @@ const Home: React.FC = () => {
   }, [chatId]);
 
   if (isChatLoading || isFetching) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-          <div className="text-gray-500 text-sm dark:text-gray-400">Loading chat...</div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!currentChatId) {
