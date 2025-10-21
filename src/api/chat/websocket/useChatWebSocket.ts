@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // import { io, type Socket } from "socket.io-client";
-import type { Conversation, Message } from "@/types";
-import { useChatStore } from "../../../stores/useChatStore";
+import type { Conversation } from "@/types";
+
+// import { useChatStore } from "../../../stores/useChatStore";
 
 // import { TEMP_API_BASE_URL } from "../../constants";
 
@@ -32,7 +33,7 @@ interface ChatEventData {
   };
 }
 
-interface CompletionData {
+export interface CompletionData {
   id?: string;
   done?: boolean;
   choices?: Array<{
@@ -65,187 +66,215 @@ export const useChatWebSocket = (
     "disconnected"
   );
 
-  const handleChatCompletion = useCallback(
-    (data: CompletionData, messageId: string) => {
-      const { id, done, choices, content, sources, selected_model_id, error, usage } = data;
+  // const handleChatCompletion = useCallback(
+  //   (data: CompletionData, messageId: string) => {
+  //     const {
+  //       id,
+  //       done,
+  //       choices,
+  //       content,
+  //       sources,
+  //       selected_model_id,
+  //       error,
+  //       usage,
+  //     } = data;
 
-      const { currentChat } = useChatStore.getState();
+  //     const { currentChat } = useChatStore.getState();
 
-      if (error) {
-        setCurrentMessages((prevMessages: Message[]) => [
-          ...prevMessages,
-          {
-            id: messageId,
-            content: error.content || error.message || "An error occurred",
-            done: true,
-            error: true,
-          } as Message,
-        ]);
+  //     if (error) {
+  //       setCurrentMessages((prevMessages: Message[]) => [
+  //         ...prevMessages,
+  //         {
+  //           id: messageId,
+  //           content: error.content || error.message || "An error occurred",
+  //           done: true,
+  //           error: true,
+  //         } as Message,
+  //       ]);
 
-        return;
-      }
+  //       return;
+  //     }
 
-      if (id) {
-        setCurrentMessages((prevMessages: Message[]) => {
-          const message = prevMessages.find((message) => message.id === messageId);
-          if (message) {
-            message.chatCompletionId = id;
-          }
-          return prevMessages;
-        });
-      }
+  //     if (id) {
+  //       setCurrentMessages((prevMessages: Message[]) => {
+  //         const message = prevMessages.find(
+  //           (message) => message.id === messageId
+  //         );
+  //         if (message) {
+  //           message.chatCompletionId = id;
+  //         }
+  //         return prevMessages;
+  //       });
+  //     }
 
-      if (sources) {
-        setCurrentMessages((prevMessages: Message[]) => {
-          const message = prevMessages.find((message) => message.id === messageId);
-          if (message) {
-            message.sources = sources;
-          }
-          return prevMessages;
-        });
-      }
+  //     if (sources) {
+  //       setCurrentMessages((prevMessages: Message[]) => {
+  //         const message = prevMessages.find(
+  //           (message) => message.id === messageId
+  //         );
+  //         if (message) {
+  //           message.sources = sources;
+  //         }
+  //         return prevMessages;
+  //       });
+  //     }
 
-      if (usage) {
-        setCurrentMessages((prevMessages: Message[]) => {
-          const message = prevMessages.find((message) => message.id === messageId);
-          if (message) {
-            message.usage = usage;
-          }
-          return prevMessages;
-        });
-      }
+  //     if (usage) {
+  //       setCurrentMessages((prevMessages: Message[]) => {
+  //         const message = prevMessages.find(
+  //           (message) => message.id === messageId
+  //         );
+  //         if (message) {
+  //           message.usage = usage;
+  //         }
+  //         return prevMessages;
+  //       });
+  //     }
 
-      if (choices && choices.length > 0) {
-        console.log("Choices:", choices);
-        const choice = choices[0];
+  //     if (choices && choices.length > 0) {
+  //       console.log("Choices:", choices);
+  //       const choice = choices[0];
 
-        if (choice.message?.content) {
-          setCurrentMessages((prevMessages: Message[]) => {
-            const message = prevMessages.find((message) => message.id === messageId);
-            if (message) {
-              message.content = choice?.message?.content || "";
-            }
-            return prevMessages;
-          });
-        } else if (choice.delta?.content) {
-          const deltaContent = choice.delta.content;
+  //       if (choice.message?.content) {
+  //         setCurrentMessages((prevMessages: Message[]) => {
+  //           const message = prevMessages.find(
+  //             (message) => message.id === messageId
+  //           );
+  //           if (message) {
+  //             message.content = choice?.message?.content || "";
+  //           }
+  //           return prevMessages;
+  //         });
+  //       } else if (choice.delta?.content) {
+  //         const deltaContent = choice.delta.content;
 
-          const currentMessage = currentChat?.chat.history.messages[messageId];
-          if (currentMessage && currentMessage.content === "" && deltaContent === "\n") {
-            console.log("Empty response");
-          } else {
-            setCurrentMessages((prevMessages: Message[]) => {
-              const message = prevMessages.find((message) => message.id === messageId);
-              if (message) {
-                message.content = message.content + deltaContent;
-              }
-              return prevMessages;
-            });
-          }
-        }
-      }
+  //         const currentMessage = currentChat?.chat.history.messages[messageId];
+  //         if (
+  //           currentMessage &&
+  //           currentMessage.content === "" &&
+  //           deltaContent === "\n"
+  //         ) {
+  //           console.log("Empty response");
+  //         } else {
+  //           setCurrentMessages((prevMessages: Message[]) => {
+  //             const message = prevMessages.find(
+  //               (message) => message.id === messageId
+  //             );
+  //             if (message) {
+  //               message.content = message.content + deltaContent;
+  //             }
+  //             return prevMessages;
+  //           });
+  //         }
+  //       }
+  //     }
 
-      if (content) {
-        setCurrentMessages((prevMessages: Message[]) => {
-          const prveMessage = prevMessages.find((message) => message.id === messageId);
-          if (prveMessage) {
-            prveMessage.content = content;
-          }
-          return [...prevMessages];
-        });
-      }
+  //     if (content) {
+  //       setCurrentMessages((prevMessages: Message[]) => {
+  //         const prveMessage = prevMessages.find(
+  //           (message) => message.id === messageId
+  //         );
+  //         if (prveMessage) {
+  //           prveMessage.content = content;
+  //         }
+  //         return [...prevMessages];
+  //       });
+  //     }
 
-      if (done) {
-        setCurrentMessages((prevMessages: Message[]) => {
-          const message = prevMessages.find((message) => message.id === messageId);
-          if (message) {
-            message.done = true;
-            message.modelName = selected_model_id || "";
-          }
-          return prevMessages;
-        });
-      }
-    },
+  //     if (done) {
+  //       setCurrentMessages((prevMessages: Message[]) => {
+  //         const message = prevMessages.find(
+  //           (message) => message.id === messageId
+  //         );
+  //         if (message) {
+  //           message.done = true;
+  //           message.modelName = selected_model_id || "";
+  //         }
+  //         return prevMessages;
+  //       });
+  //     }
+  //   },
 
-    [setCurrentMessages]
-  );
+  //   [setCurrentMessages]
+  // );
 
   const handleChatEvent = useCallback(
     (data: ChatEventData) => {
-      const { message_id, data: eventData } = data;
-
       console.log("WebSocket chat event:", data);
+      // const { message_id, data: eventData } = data;
 
-      const { updateMessage } = useChatStore.getState();
+      // console.log("WebSocket chat event:", data);
 
-      const type = eventData.type;
+      // const { updateMessage } = useChatStore.getState();
 
-      switch (type) {
-        case "status":
-          setCurrentMessages((prevMessages: Message[]) => {
-            const message = prevMessages.find((message) => message.id === message_id);
-            if (message) {
-              message.done = eventData.done;
-              message.content = eventData.content || "";
-            }
-            return prevMessages;
-          });
-          break;
+      // const type = eventData.type;
 
-        case "chat:completion":
-          handleChatCompletion((eventData.data as CompletionData) || (eventData as CompletionData), message_id);
-          break;
+      // switch (type) {
+      //   case "status":
+      //     setCurrentMessages((prevMessages: Message[]) => {
+      //       const message = prevMessages.find((message) => message.id === message_id);
+      //       if (message) {
+      //         message.done = eventData.done;
+      //         message.content = eventData.content || "";
+      //       }
+      //       return prevMessages;
+      //     });
+      //     break;
 
-        case "chat:message:delta":
-        case "message":
-          if (eventData.content) {
-            console.log("Chat message delta:", eventData.content);
-            setCurrentMessages((prevMessages: Message[]) => {
-              const message = prevMessages.find((message) => message.id === message_id);
-              if (message) {
-                message.content = message.content + eventData.content;
-              }
-              return prevMessages;
-            });
-          }
-          break;
+      //   case "chat:completion":
+      //     handleChatCompletion((eventData.data as CompletionData) || (eventData as CompletionData), message_id);
+      //     break;
 
-        case "chat:message":
-        case "replace":
-          if (eventData.content) {
-            updateMessage(message_id, {
-              content: eventData.content,
-            });
-          }
-          break;
+      //   case "chat:message:delta":
+      //   case "message":
+      //     if (eventData.content) {
+      //       console.log("Chat message delta:", eventData.content);
+      //       setCurrentMessages((prevMessages: Message[]) => {
+      //         const message = prevMessages.find((message) => message.id === message_id);
+      //         if (message) {
+      //           message.content = message.content + eventData.content;
+      //         }
+      //         return prevMessages;
+      //       });
+      //     }
+      //     break;
 
-        case "chat:message:files":
-        case "files":
-          if (eventData.files) {
-            // updateMessage(message_id, {
-            // 	files: eventData.files
-            // });
-          }
-          break;
+      //   case "chat:message":
+      //   case "replace":
+      //     if (eventData.content) {
+      //       updateMessage(message_id, {
+      //         content: eventData.content,
+      //       });
+      //     }
+      //     break;
 
-        case "chat:title":
-          console.log("Chat title updated:", eventData);
-          break;
+      //   case "chat:message:files":
+      //   case "files":
+      //     if (eventData.files) {
+      //       // updateMessage(message_id, {
+      //       // 	files: eventData.files
+      //       // });
+      //     }
+      //     break;
 
-        case "error":
-          updateMessage(message_id, {
-            content: eventData.description || String(eventData.error) || "An error occurred",
-            done: true,
-            error: true,
-          });
-          break;
+      //   case "chat:title":
+      //     console.log("Chat title updated:", eventData);
+      //     break;
 
-        default:
-          console.log("Unknown message type:", type, eventData);
-          break;
-      }
+      //   case "error":
+      //     updateMessage(message_id, {
+      //       content: eventData.description || String(eventData.error) || "An error occurred",
+      //       done: true,
+      //       error: true,
+      //     });
+      //     break;
+
+      //   default:
+      //     console.log("Unknown message type:", type, eventData);
+      //     break;
+      // }
     },
-    [handleChatCompletion, setCurrentMessages]
+    [setCurrentMessages]
   );
 
   useEffect(() => {

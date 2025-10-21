@@ -43,7 +43,7 @@ class AuthClient extends ApiClient {
   }
 
   async signOut(): Promise<void> {
-    await fetch(`${this.baseURLNgrok}/auths/signout`, {
+    await fetch(`${this.baseURLV2}/auths/signout`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -89,7 +89,7 @@ class AuthClient extends ApiClient {
   }
 
   oauth2SignIn(provider: OAuth2Provider) {
-    window.location.href = `${this.baseURLNgrok}/v1/auth/${provider}?frontend_callback=http://localhost:3000`;
+    window.location.href = `${this.baseURLV2}/v1/auth/${provider}?frontend_callback=http://localhost:3000`;
   }
 }
 

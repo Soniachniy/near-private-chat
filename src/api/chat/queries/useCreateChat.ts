@@ -1,12 +1,12 @@
-import { useMutation } from "@tanstack/react-query";
+// import { useMutation } from "@tanstack/react-query";
 import { useChatStore } from "@/stores/useChatStore";
 import { chatClient } from "../client";
 
-export const useCreateNewChat = () => {
-  return useMutation({
-    mutationFn: (prompt: string) => chatClient.createNewChat(prompt, "user"),
-  });
-};
+// export const useCreateNewChat = () => {
+//   return useMutation({
+//     mutationFn: (prompt: string) => chatClient.createNewChat(prompt, "user"),
+//   });
+// };
 
 export const useCreateChat = () => {
   const { addChat } = useChatStore();

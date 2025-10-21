@@ -25,7 +25,7 @@ export const createMessagesList = (history: ChatHistory, messageId: string): Mes
   }
 };
 
-export const useChatById = ({ id, setCurrentChat }: ChatIdProps, options?: UseChatByIdOptions) => {
+export const useChatById = ({ id }: ChatIdProps, options?: UseChatByIdOptions) => {
   const { setSelectedModels } = useChatStore();
 
   return useQuery({
@@ -42,7 +42,7 @@ export const useChatById = ({ id, setCurrentChat }: ChatIdProps, options?: UseCh
       //   ...conversationItems,
       // });
       setSelectedModels(["gpt-5-nano"]);
-      return chat;
+      return {} as Chat;
     },
     enabled: !!id,
     ...options,

@@ -14,7 +14,7 @@ interface UserMessageProps {
   deleteMessage: (messageId: string) => void;
 }
 
-const UserMessage: React.FC<UserMessageProps> = ({ message, isFirstMessage, readOnly, editMessage, deleteMessage }) => {
+const UserMessage: React.FC<UserMessageProps> = ({ message, readOnly, editMessage, deleteMessage }) => {
   const { settings } = useSettingsStore();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
