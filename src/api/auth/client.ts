@@ -89,7 +89,7 @@ class AuthClient extends ApiClient {
   }
 
   oauth2SignIn(provider: OAuth2Provider) {
-    window.location.href = `${this.baseURLV2}/v1/auth/${provider}?frontend_callback=http://localhost:3000`;
+    window.location.href = `${this.baseURLV2}/auth/${provider}?frontend_callback=http://localhost:3000`;
   }
 }
 
