@@ -1,3 +1,8 @@
+import type {
+  Message as MessageOpenAI,
+  Conversation as OpenAIConversation,
+} from "openai/resources/conversations/conversations";
+
 export type OAuth2Provider = "google" | "github" | "microsoft" | "oidc";
 
 export type UserRole = "user" | "admin" | "pending";
@@ -15,6 +20,48 @@ export interface User {
   role: UserRole;
   settings?: unknown; //TODO
   updated_at: number;
+}
+
+export interface ConversationInfo {
+  id: string;
+  created_at: number;
+  updated_at: number;
+  title: string;
+  metadata: {
+    title: string;
+  };
+}
+
+export interface ConversationItemsResponse {
+  data: MessageOpenAI[];
+  first_id: string;
+  has_more: boolean;
+  last_id: string;
+  object: "list";
+}
+
+export interface Conversation extends OpenAIConversation {
+  // ConversationItemsPage properties
+  data?: MessageOpenAI[];
+  has_more?: boolean;
+  last_id?: string;
+
+  // Chat-specific properties
+  user_id?: string;
+  title?: string;
+  chat?: {
+    id: string;
+    title: string;
+    models: string[];
+    params: object;
+    history: {
+      messages: Record<string, Message>;
+      currentId: string | null;
+    };
+    files?: unknown[];
+    messages: Message[];
+    timestamp: number;
+  };
 }
 
 export interface SessionUser {

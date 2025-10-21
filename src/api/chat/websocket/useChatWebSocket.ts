@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { io, type Socket } from "socket.io-client";
-import type { Message } from "@/types";
+// import { io, type Socket } from "socket.io-client";
+import type { Conversation, Message } from "@/types";
 import { useChatStore } from "../../../stores/useChatStore";
-import { TEMP_API_BASE_URL } from "../../constants";
+
+// import { TEMP_API_BASE_URL } from "../../constants";
 
 interface ChatEventData {
   chat_id: string;
@@ -56,8 +57,10 @@ interface CompletionData {
   };
 }
 
-export const useChatWebSocket = (setCurrentMessages: React.Dispatch<React.SetStateAction<Message[]>>) => {
-  const socketRef = useRef<Socket | null>(null);
+export const useChatWebSocket = (
+  setCurrentMessages: React.Dispatch<React.SetStateAction<Conversation | undefined>>
+) => {
+  const socketRef = useRef<WebSocket | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "disconnected" | "error">(
     "disconnected"
   );
@@ -248,69 +251,64 @@ export const useChatWebSocket = (setCurrentMessages: React.Dispatch<React.SetSta
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token || socketRef.current) return;
-
+    const openAIToken = localStorage.getItem("openai_token");
     setConnectionStatus("connecting");
 
-    const socket = io(TEMP_API_BASE_URL, {
-      path: "/ws/socket.io",
-      auth: { token },
-      transports: ["websocket", "polling"],
-      autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      timeout: 10000,
-      forceNew: false,
-    });
+    const ws = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-realtime", [
+      "realtime",
+      "openai-insecure-api-key." + openAIToken,
+    ]);
 
-    socket.on("connect", () => {
-      console.log("WebSocket connected with ID:", socket.id);
+    ws.addEventListener("connect", () => {
+      console.log("WebSocket connected");
       setConnectionStatus("connected");
     });
 
-    socket.on("chat-events", handleChatEvent);
+    ws.addEventListener("chat-events", (event) => {
+      handleChatEvent(JSON.parse(event as unknown as string));
+    });
 
-    socket.on("disconnect", (reason) => {
+    ws.addEventListener("disconnect", (reason) => {
       console.log("WebSocket disconnected:", reason);
       setConnectionStatus("disconnected");
     });
 
-    socket.on("connect_error", (error) => {
+    ws.addEventListener("connect_error", (error) => {
       console.error("WebSocket connection error:", error);
 
       setConnectionStatus("error");
     });
 
-    socket.on("error", (error) => {
+    ws.addEventListener("error", (error) => {
       console.error("WebSocket error:", error);
       setConnectionStatus("error");
     });
 
-    socket.on("reconnect", (attemptNumber) => {
+    ws.addEventListener("reconnect", (attemptNumber) => {
       console.log(`WebSocket reconnected after ${attemptNumber} attempts`);
       setConnectionStatus("connected");
     });
 
-    socket.on("reconnect_attempt", (attemptNumber) => {
+    ws.addEventListener("reconnect_attempt", (attemptNumber) => {
       console.log(`WebSocket reconnection attempt ${attemptNumber}`);
       setConnectionStatus("connecting");
     });
 
-    socket.on("reconnect_error", (error) => {
+    ws.addEventListener("reconnect_error", (error) => {
       console.error("WebSocket reconnection error:", error);
       setConnectionStatus("error");
     });
 
-    socket.on("reconnect_failed", () => {
+    ws.addEventListener("reconnect_failed", () => {
       console.error("WebSocket reconnection failed");
       setConnectionStatus("error");
     });
 
-    socketRef.current = socket;
+    socketRef.current = ws;
 
     return () => {
-      if (socket.connected) {
-        socket.disconnect();
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
       }
       socketRef.current = null;
     };

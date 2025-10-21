@@ -1,19 +1,10 @@
-import { type UseMutationOptions, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useChatStore } from "@/stores/useChatStore";
-import type { Chat } from "@/types";
 import { chatClient } from "../client";
 
-type CreateNewChatParams = {
-  chat: object;
-};
-
-type UseCreateNewChatOptions = Omit<UseMutationOptions<Chat, Error, CreateNewChatParams>, "mutationFn">;
-
-export const useCreateNewChat = (options?: UseCreateNewChatOptions) => {
-  //TODO: invalidate queries
+export const useCreateNewChat = () => {
   return useMutation({
-    mutationFn: ({ chat }: CreateNewChatParams) => chatClient.createNewChat(chat),
-    ...options,
+    mutationFn: (prompt: string) => chatClient.createNewChat(prompt, "user"),
   });
 };
 

@@ -2,7 +2,8 @@ import { type UseQueryOptions, useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/api/query-keys";
 import { useChatStore } from "@/stores/useChatStore";
 import type { Chat, ChatHistory, Message } from "@/types";
-import { chatClient } from "../client";
+
+// import { chatClient } from "../client";
 
 type ChatIdProps = {
   id: string;
@@ -24,16 +25,23 @@ export const createMessagesList = (history: ChatHistory, messageId: string): Mes
   }
 };
 
-export const useChatById = ({ id, setCurrentMessages }: ChatIdProps, options?: UseChatByIdOptions) => {
-  const { setCurrentChat, setSelectedModels } = useChatStore();
+export const useChatById = ({ id, setCurrentChat }: ChatIdProps, options?: UseChatByIdOptions) => {
+  const { setSelectedModels } = useChatStore();
 
   return useQuery({
     queryKey: queryKeys.chat.byId(id),
     queryFn: async () => {
-      const chat = await chatClient.getChatById(id);
-      setCurrentChat(chat);
-      setCurrentMessages(createMessagesList(chat.chat.history, chat.chat.history.currentId));
-      setSelectedModels(chat.chat.models);
+      // const conversation = await chatClient.getConversation(id);
+      // const conversationItems = await chatClient.getConversationItems(id);
+      // console.log("conversation", conversation);
+      // console.log("conversationItems", conversationItems);
+      // const chat = await chatClient.getChatById(id);
+
+      // setCurrentChat({
+      //   ...chat,
+      //   ...conversationItems,
+      // });
+      setSelectedModels(["gpt-5-nano"]);
       return chat;
     },
     enabled: !!id,

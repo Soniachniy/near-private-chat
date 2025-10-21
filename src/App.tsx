@@ -23,7 +23,7 @@ function App() {
   const { isLoading: isChatLoading } = useChats();
 
   const { settings } = useSettingsStore();
-
+  console.log("isChatLoading", isInitialized, isChatLoading);
   if (!isInitialized || isAppLoading || (user && isChatLoading)) {
     return <LoadingScreen />;
   }
