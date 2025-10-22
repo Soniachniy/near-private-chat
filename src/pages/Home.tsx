@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import type { Message as MessageOpenAI } from "openai/resources/conversations/conversations";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useConversation } from "@/api/chat/queries/useConversation";
 import { useGetConversation } from "@/api/chat/queries/useGetConversation";
@@ -16,13 +16,13 @@ import { useResponse } from "@/api/chat/queries/useResponse";
 // } from "@/api/chat/queries";
 // import { useChatWebSocket } from "@/api/chat/websocket/useChatWebSocket";
 // import { TEMP_API_BASE_URL } from "@/api/constants";
-import { queryKeys } from "@/api/query-keys";
 import ChatPlaceholder from "@/components/chat/ChatPlaceholder";
 import MessageInput from "@/components/chat/MessageInput";
 import MessageSkeleton from "@/components/chat/MessageSkeleton";
 import ResponseMessage from "@/components/chat/messages/ResponseMessage";
 import UserMessage from "@/components/chat/messages/UserMessage";
 import Navbar from "@/components/chat/Navbar";
+import LoadingScreen from "@/components/common/LoadingScreen";
 import { useChatStore } from "@/stores/useChatStore";
 import type { Conversation, FileItem } from "@/types";
 
@@ -35,7 +35,7 @@ import type { Conversation, FileItem } from "@/types";
 
 const Home: React.FC = () => {
   const { chatId } = useParams<{ chatId: string }>();
-  const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
+  const [opacity, setOpacity] = useState<number>(0);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -47,9 +47,9 @@ const Home: React.FC = () => {
     isLoading: isConversationsLoading,
     isFetching: isConversationsFetching,
     data: conversationData,
-  } = useGetConversation(currentChatId!);
+  } = useGetConversation(chatId!);
 
-  const messagesContainerElement = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { generateChatTitle, startStream } = useResponse();
 
@@ -225,25 +225,31 @@ const Home: React.FC = () => {
     // }
   };
 
+  // Reset opacity when chatId changes
   useEffect(() => {
-    setCurrentChatId(chatId);
-    queryClient.invalidateQueries({ queryKey: queryKeys.chat.byId(chatId!) });
-    const element = document.getElementById("messages-container");
-    element?.scrollIntoView({ behavior: "smooth" });
+    setOpacity(0);
   }, [chatId]);
 
+  useLayoutEffect(() => {
+    if (!conversationData || !scrollContainerRef.current) return;
+
+    const frameId = requestAnimationFrame(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+        setOpacity(1);
+      }
+    });
+    return () => cancelAnimationFrame(frameId);
+  }, [chatId, conversationData]);
+
   if (isConversationsLoading || isConversationsFetching) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-          <div className="text-gray-500 text-sm dark:text-gray-400">Loading chat...</div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
-  if (!currentChatId) {
+  if (!chatId) {
     return (
       <>
         <Navbar />
@@ -263,7 +269,11 @@ const Home: React.FC = () => {
   return (
     <div className="flex h-full flex-col bg-gray-900">
       <Navbar />
-      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pt-8">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pt-8 transition-opacity delay-200 duration-500"
+        style={{ opacity }}
+      >
         {currentMessages.map((message, idx) => {
           // const siblings: string[] = [];
           console.log("Rendering message", message);
@@ -322,7 +332,6 @@ const Home: React.FC = () => {
             // }
           }
         })}
-        <div ref={messagesContainerElement} id="messages-container" />
       </div>
 
       <MessageInput messages={currentChat?.chat.messages} onSubmit={handleSendMessage} />
