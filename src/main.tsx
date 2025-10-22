@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import App from "./App.tsx";
 import "./index.css";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+// import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import ThemeProvider from "./components/common/ThemeProvider";
 import { initI18n } from "./i18n";
 
@@ -28,7 +28,7 @@ createRoot(document.getElementById("root")!).render(
           <App />
         </ThemeProvider>
       </BrowserRouter>
-      <ReactQueryDevtools initialIsOpen={true} />
+      {/* <ReactQueryDevtools initialIsOpen={true} /> */}
     </QueryClientProvider>
   </>
   // </React.StrictMode>
