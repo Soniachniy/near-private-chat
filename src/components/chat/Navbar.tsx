@@ -1,17 +1,17 @@
-import { useNavigate, useParams } from "react-router";
+import { useNavigate } from "react-router";
 import { useCreateChat } from "@/api/chat/queries";
 import SafeLogo from "@/assets/images/safe.svg";
+import { useChatStore } from "@/stores/useChatStore";
 import { useViewStore } from "@/stores/useViewStore";
+import ChatOptions from "./ChatOptions";
 import ModelSelector from "./ModelSelector";
 
 export default function Navbar() {
   const { isLeftSidebarOpen, isRightSidebarOpen, setIsRightSidebarOpen, setIsLeftSidebarOpen } = useViewStore();
 
-  const { chatId } = useParams<{ chatId: string }>();
-  const params = useParams();
-  const currentChatId = chatId || params.chatId;
   const navigate = useNavigate();
   const createChat = useCreateChat();
+  const currentChat = useChatStore((state) => state.currentChat);
 
   const handleNewChat = async () => {
     try {
@@ -68,32 +68,8 @@ export default function Navbar() {
               <ModelSelector />
             </div>
 
-            <div className="flex flex-none items-center self-start text-gray-600 dark:text-gray-400">
-              {currentChatId && (
-                <button
-                  type="button"
-                  className="flex cursor-pointer rounded-xl px-2 py-2 transition hover:bg-gray-50 dark:hover:bg-gray-850"
-                  id="chat-context-menu-button"
-                  title="Chat Options"
-                >
-                  <div className="m-auto self-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth="1.5"
-                      stroke="currentColor"
-                      className="size-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"
-                      />
-                    </svg>
-                  </div>
-                </button>
-              )}
+            <div className="flex flex-none items-center gap-2 self-start text-gray-600 dark:text-gray-400">
+              {currentChat && <ChatOptions chat={currentChat} />}
               {!isRightSidebarOpen && (
                 <button
                   onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
