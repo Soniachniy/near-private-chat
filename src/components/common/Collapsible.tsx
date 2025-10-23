@@ -77,7 +77,7 @@ const Collapsible: React.FC<CollapsibleProps> = ({
   return (
     <div id={id} className={className}>
       <div className={`${buttonClassName} cursor-pointer`} onClick={toggleOpen}>
-        <div className="flex w-full flex-row items-center justify-between gap-2 font-medium">
+        <div className="flex w-full flex-row items-center gap-2 font-medium">
           <div>{title}</div>
           {chevron && (
             <div className="flex translate-y-[2px] items-center justify-center">

@@ -39,7 +39,7 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { updateMessage, currentChat } = useChatStore();
+  const { updateMessage, currentChat, selectedModels } = useChatStore();
 
   const { createConversation, updateConversation } = useConversation();
 
@@ -53,7 +53,7 @@ const Home: React.FC = () => {
 
   const { generateChatTitle, startStream } = useResponse();
 
-  const handleSendMessage = async (content: string, files: FileItem[]) => {
+  const handleSendMessage = async (content: string, files: FileItem[], webSearchEnabled: boolean) => {
     console.log("handleSendMessage", content, files);
     if (!chatId) {
       const newConversation = await createConversation.mutateAsync(
@@ -90,11 +90,12 @@ const Home: React.FC = () => {
               };
             });
             await startStream.mutateAsync({
-              model: "gpt-5-nano",
+              model: selectedModels[0],
               conversation: data.id,
               role: "user",
               content: content,
               queryClient: queryClient,
+              tools: webSearchEnabled ? [{ type: "web_search" }] : [],
             });
 
             await generateChatTitle.mutateAsync(
@@ -140,11 +141,12 @@ const Home: React.FC = () => {
         };
       });
       await startStream.mutateAsync({
-        model: "gpt-5-nano",
+        model: selectedModels[0],
         conversation: chatId,
         role: "user",
         content: content,
         queryClient: queryClient,
+        tools: webSearchEnabled ? [{ type: "web_search" }] : [],
       });
     }
   };
@@ -255,10 +257,10 @@ const Home: React.FC = () => {
         <Navbar />
         <ChatPlaceholder
           submitVoice={async (voice) => {
-            await handleSendMessage(voice, []);
+            await handleSendMessage(voice, [], false);
           }}
           submitPrompt={async (prompt) => {
-            await handleSendMessage(prompt, []);
+            await handleSendMessage(prompt, [], false);
           }}
         />
       </>
@@ -275,9 +277,6 @@ const Home: React.FC = () => {
         style={{ opacity }}
       >
         {currentMessages.map((message, idx) => {
-          // const siblings: string[] = [];
-          console.log("Rendering message", message);
-
           if (message.type !== "message") {
             return null;
           }

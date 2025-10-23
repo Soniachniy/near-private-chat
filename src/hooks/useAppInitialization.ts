@@ -38,7 +38,8 @@ export const useAppInitialization = () => {
         if (models) {
           // useUserStore.getState().setUser(userData);
           useChatStore.getState().setModels(models);
-          useChatStore.getState().setSelectedModels([models[0].id]);
+          const selectedDefaultModel = models.find((model) => model.id === "gpt-5-nano");
+          useChatStore.getState().setSelectedModels([selectedDefaultModel?.id || models[0].id]);
           // console.log("User loaded:", userData);
         }
 

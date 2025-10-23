@@ -160,11 +160,9 @@ export class ApiClient {
         const data: Responses.ResponseStreamEvent = JSON.parse(event.data);
         switch (data.type) {
           case "response.output_text.delta":
-            console.log("DATA", data);
             options.queryClient?.setQueryData(
               ["conversation", (body as { conversation?: string })?.conversation || ""],
               (old: Conversation) => {
-                console.log("the updated happened");
                 const newData = { ...old };
                 const currentConversationData = newData.data?.find((item) => item.id === data.item_id);
                 if (currentConversationData && !currentConversationData?.content?.length) {
@@ -191,33 +189,26 @@ export class ApiClient {
               }
             );
             break;
+          case "response.output_item.done":
+            options.queryClient?.setQueryData(
+              ["conversation", (body as { conversation?: string })?.conversation || ""],
+              (old: Conversation) => {
+                const newData: Conversation = { ...old };
+                const currentConversationData = newData.data?.find((item) => item.id === data.item.id);
+                if (data.item.type === "message" && currentConversationData) {
+                  currentConversationData.content = data.item.content;
+                  currentConversationData.status = data.item.status;
+                }
 
-          // case "response.output_text.delta":
-          //   console.log("DATA", data);
-          //   options.queryClient?.setQueryData(
-          //     [
-          //       "conversation",
-          //       (body as { conversation?: string })?.conversation || "",
-          //     ],
-          //     produce((draft: Conversation) => {
-          //       const currentConversationData = draft.data?.find(
-          //         (item) => item.id === data.item_id
-          //       );
-          //       const currentMessage = currentConversationData?.content?.find(
-          //         (item) => item.type === "output_text"
-          //       );
-
-          //       if (currentMessage) {
-          //         currentMessage.text += data.delta;
-          //       }
-          //     })
-          //   );
-          //   break;
-          case "response.completed":
-            console.log("DATA", data);
+                return {
+                  data: [...(newData.data ?? [])],
+                  ...old,
+                  lastUpdatedAt: Date.now(),
+                };
+              }
+            );
             break;
           case "response.output_item.added":
-            console.log("Created", data);
             options.queryClient?.setQueryData(
               ["conversation", (body as { conversation?: string })?.conversation || ""],
               (old: Conversation) => {
@@ -248,23 +239,7 @@ export class ApiClient {
               }
             );
             break;
-          case "response.output_text.done":
-            console.log("Created done", data);
-            break;
         }
-
-        // console.log("DATA", data);
-        // if (data.type === "response.output_text.delta") {
-        //   try {
-        //     console.log("DATA", data);
-        //     const text = data.delta;
-        //     if (text) {
-        //       console.log("🟦 Stream chunk:", text);
-        //     }
-        //   } catch (err) {
-        //     console.error("Parse error", err);
-        //   }
-        // }
       }
 
       while (true) {

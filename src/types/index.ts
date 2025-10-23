@@ -2,6 +2,7 @@ import type {
   Message as MessageOpenAI,
   Conversation as OpenAIConversation,
 } from "openai/resources/conversations/conversations";
+import type { ResponseInputItem } from "openai/resources/responses/responses.mjs";
 
 export type OAuth2Provider = "google" | "github" | "microsoft" | "oidc";
 
@@ -42,7 +43,7 @@ export interface ConversationItemsResponse {
 
 export interface Conversation extends OpenAIConversation {
   // ConversationItemsPage properties
-  data?: MessageOpenAI[];
+  data?: ResponseInputItem[];
   has_more?: boolean;
   last_id?: string;
 

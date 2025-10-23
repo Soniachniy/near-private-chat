@@ -4,7 +4,7 @@ import type {
   ConversationUpdateParams,
   Conversation as OpenAIConversation,
 } from "openai/resources/conversations/conversations.mjs";
-import type { Responses } from "openai/resources/responses/responses.mjs";
+import type { Responses, Tool } from "openai/resources/responses/responses.mjs";
 import { ApiClient } from "@/api/base-client";
 import { getTimeRange } from "@/lib/time";
 import type { Chat, ChatInfo, Conversation, ConversationItemsResponse, Tag } from "@/types";
@@ -301,11 +301,18 @@ class ChatClient extends ApiClient {
     role: "user" | "assistant",
     content: string,
     conversation: string,
-    queryClient: QueryClient
+    queryClient: QueryClient,
+    tools?: Tool[]
   ) {
     return this.stream(
       "/responses",
-      { model, input: [{ role, content }], conversation, stream: true },
+      {
+        model,
+        input: [{ role, content }],
+        conversation,
+        stream: true,
+        tools,
+      },
       { apiVersion: "v2", queryClient }
     );
   }

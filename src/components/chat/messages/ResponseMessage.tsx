@@ -11,7 +11,8 @@ import markedExtension from "@/lib/utils/extension";
 import { processResponseContent, replaceTokens } from "@/lib/utils/markdown";
 import markedKatexExtension from "@/lib/utils/marked-katex-extension";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { extractMessageContent } from "@/types/openai";
+import { extractCitations, extractMessageContent } from "@/types/openai";
+import Citations from "./Citations";
 import MarkdownTokens from "./MarkdownTokens";
 
 interface ResponseMessageProps {
@@ -53,7 +54,7 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
   }, [edit]);
 
   const messageContent = extractMessageContent(message, "output_text");
-
+  const citations = extractCitations(message);
   const extendedMessageResponse = {
     ...message,
     modelName: "",
@@ -300,6 +301,8 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
             )}
           </div>
         )}
+
+        <Citations citations={citations} />
       </div>
     </div>
   );
