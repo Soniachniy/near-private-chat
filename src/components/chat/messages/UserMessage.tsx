@@ -1,38 +1,28 @@
+import type { Message as MessageOpenAI } from "openai/resources/conversations/conversations";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import FileItem from "@/components/FileItem";
+// import FileItem from "@/components/FileItem";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import type { ChatHistory } from "@/types";
+import { extractMessageContent } from "@/types/openai";
 
 interface UserMessageProps {
-  history: ChatHistory;
-  messageId: string;
-  siblings: string[];
+  message: MessageOpenAI;
   isFirstMessage: boolean;
   readOnly: boolean;
   editMessage: (messageId: string, content: string) => void;
   deleteMessage: (messageId: string) => void;
 }
 
-const UserMessage: React.FC<UserMessageProps> = ({
-  history,
-  messageId,
-  siblings,
-  isFirstMessage,
-  readOnly,
-  editMessage,
-  deleteMessage,
-}) => {
+const UserMessage: React.FC<UserMessageProps> = ({ message, readOnly, editMessage, deleteMessage }) => {
   const { settings } = useSettingsStore();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [edit, setEdit] = useState(false);
   const messageEditTextAreaRef = useRef<HTMLTextAreaElement>(null);
+  const messageContent = extractMessageContent(message);
 
-  const message = history.messages[messageId];
-  console.log("message", message);
-  const [editedContent, setEditedContent] = useState(message?.content || "");
+  const [editedContent, setEditedContent] = useState(messageContent || "");
 
   useEffect(() => {
     if (edit && messageEditTextAreaRef.current) {
@@ -43,12 +33,11 @@ const UserMessage: React.FC<UserMessageProps> = ({
 
   const handleEdit = () => {
     setEdit(true);
-    setEditedContent(message?.content || "");
+    setEditedContent(messageContent || "");
   };
-
   const handleSave = () => {
-    if (editedContent.trim() !== message?.content) {
-      editMessage(messageId, editedContent.trim());
+    if (editedContent.trim() !== messageContent) {
+      editMessage(message.id, editedContent.trim());
     }
     setEdit(false);
     setEditedContent("");
@@ -74,7 +63,7 @@ const UserMessage: React.FC<UserMessageProps> = ({
   };
 
   const handleDelete = () => {
-    deleteMessage(messageId);
+    deleteMessage(message.id);
     setShowDeleteConfirm(false);
   };
 
@@ -93,7 +82,7 @@ const UserMessage: React.FC<UserMessageProps> = ({
     <div className="user-message group flex w-full" dir={settings.chatDirection || "ltr"} id={`message-${message.id}`}>
       <div className="w-0 max-w-full flex-auto pl-1">
         <div className={`chat-${message.role} markdown-prose w-full min-w-full`}>
-          {message.files && message.files.length > 0 && (
+          {/* {message.files && message.files.length > 0 && (
             <div className="mt-2.5 mb-1 flex w-full flex-col flex-wrap justify-end gap-1 overflow-x-auto">
               {message.files.map((file) => (
                 <div key={file.id} className={"self-end"}>
@@ -105,9 +94,9 @@ const UserMessage: React.FC<UserMessageProps> = ({
                 </div>
               ))}
             </div>
-          )}
+          )} */}
 
-          {message.content !== "" && (
+          {messageContent !== "" && (
             <>
               {edit ? (
                 <div className="mb-2 w-full rounded-3xl bg-gray-50 px-5 py-3 dark:bg-gray-800">
@@ -147,7 +136,7 @@ const UserMessage: React.FC<UserMessageProps> = ({
                 <div className="w-full">
                   <div className={`flex justify-end pb-1`}>
                     <div className={`rounded-xl ${`max-w-[90%] bg-gray-50 px-4 py-2 dark:bg-gray-850`}`}>
-                      {message.content && <div className="whitespace-pre-wrap">{message.content}</div>}
+                      {messageContent && <div className="whitespace-pre-wrap">{messageContent}</div>}
                     </div>
                   </div>
 
@@ -177,7 +166,7 @@ const UserMessage: React.FC<UserMessageProps> = ({
 
                     <button
                       className="invisible rounded-lg p-1.5 transition hover:bg-black/5 hover:text-black group-hover:visible dark:hover:bg-white/5 dark:hover:text-white"
-                      onClick={() => copyToClipboard(message.content)}
+                      onClick={() => copyToClipboard(messageContent)}
                       title="Copy"
                     >
                       <svg
@@ -196,7 +185,7 @@ const UserMessage: React.FC<UserMessageProps> = ({
                       </svg>
                     </button>
 
-                    {!readOnly && (!isFirstMessage || siblings.length > 1) && (
+                    {/* {!readOnly && (!isFirstMessage || siblings.length > 1) && (
                       <button
                         className="invisible rounded-sm p-1 transition hover:text-black group-hover:visible dark:hover:text-white"
                         onClick={() => setShowDeleteConfirm(true)}
@@ -217,7 +206,7 @@ const UserMessage: React.FC<UserMessageProps> = ({
                           />
                         </svg>
                       </button>
-                    )}
+                    )} */}
                   </div>
                 </div>
               )}

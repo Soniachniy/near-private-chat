@@ -15,11 +15,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { ChatInfo } from "@/types";
+
+import type { ChatInfo, ConversationInfo } from "@/types";
+
 import ConfirmDialog from "../common/dialogs/ConfirmDialog";
 
 type ChatMenuProps = {
-  chat: ChatInfo;
+  chat: ChatInfo | ConversationInfo;
   handleRename: () => void;
   isPinned?: boolean;
 };

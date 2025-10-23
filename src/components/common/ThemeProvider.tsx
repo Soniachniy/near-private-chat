@@ -11,7 +11,8 @@ interface ThemeProviderProps {
 
 const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { settings } = useSettingsStore();
-  const { setIsMobile } = useViewStore();
+  const { setIsMobile, setIsLeftSidebarOpen } = useViewStore();
+
   useEffect(() => {
     const root = document.documentElement;
 
@@ -35,8 +36,10 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const onResize = () => {
       if (window.innerWidth < BREAKPOINT) {
         setIsMobile(true);
+        setIsLeftSidebarOpen(false);
       } else {
         setIsMobile(false);
+        setIsLeftSidebarOpen(true);
       }
     };
     window.addEventListener("resize", onResize);

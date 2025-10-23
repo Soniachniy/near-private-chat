@@ -1,4 +1,5 @@
 import { marked } from "marked";
+import type { Message as MessageOpenAI } from "openai/resources/conversations/conversations";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -10,26 +11,25 @@ import markedExtension from "@/lib/utils/extension";
 import { processResponseContent, replaceTokens } from "@/lib/utils/markdown";
 import markedKatexExtension from "@/lib/utils/marked-katex-extension";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import type { ChatHistory, Message } from "@/types";
+import { extractCitations, extractMessageContent } from "@/types/openai";
+import Citations from "./Citations";
 import MarkdownTokens from "./MarkdownTokens";
 
 interface ResponseMessageProps {
-  history: ChatHistory;
-  messageId: string;
+  message: MessageOpenAI;
   siblings: string[];
   isLastMessage: boolean;
   readOnly: boolean;
   webSearchEnabled: boolean;
   saveMessage: (messageId: string, content: string) => void;
   deleteMessage: (messageId: string) => void;
-  regenerateResponse: (message: Message) => Promise<void>;
-  showPreviousMessage: (message: Message) => void;
-  showNextMessage: (message: Message) => void;
+  regenerateResponse: (message: MessageOpenAI) => Promise<void>;
+  showPreviousMessage: (message: MessageOpenAI) => void;
+  showNextMessage: (message: MessageOpenAI) => void;
 }
 
 const ResponseMessage: React.FC<ResponseMessageProps> = ({
-  history,
-  messageId,
+  message,
   isLastMessage,
   readOnly,
   webSearchEnabled,
@@ -46,8 +46,6 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
 
   const messageEditTextAreaRef = useRef<HTMLTextAreaElement>(null);
 
-  const message = history.messages[messageId];
-
   useEffect(() => {
     if (edit && messageEditTextAreaRef.current) {
       messageEditTextAreaRef.current.focus();
@@ -55,9 +53,18 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
     }
   }, [edit]);
 
+  const messageContent = extractMessageContent(message, "output_text");
+  const citations = extractCitations(message);
+  const extendedMessageResponse = {
+    ...message,
+    modelName: "",
+    timestamp: Date.now(),
+    files: [],
+    content: messageContent,
+  };
   const handleSave = () => {
-    if (editedContent.trim() !== message.content) {
-      saveMessage(messageId, editedContent.trim());
+    if (editedContent.trim() !== messageContent) {
+      saveMessage(message.id, editedContent.trim());
     }
     setEdit(false);
     setEditedContent("");
@@ -95,10 +102,10 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
 
     marked.use(markedKatexExtension());
     marked.use(markedExtension());
-    const processedContent = replaceTokens(processResponseContent(message.content), [], undefined, undefined);
+    const processedContent = replaceTokens(processResponseContent(messageContent), [], undefined, undefined);
 
     return marked.lexer(processedContent);
-  }, [message?.content]);
+  }, [messageContent]);
 
   if (!message) return null;
 
@@ -111,7 +118,7 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
       <div className="w-0 flex-auto pl-1">
         <div className="flex items-center space-x-2">
           <span className="line-clamp-1 font-normal text-black dark:text-white">
-            {message.modelName || "Assistant"}
+            {extendedMessageResponse.modelName || "Assistant"}
           </span>
 
           {/* Verification Badge */}
@@ -119,38 +126,48 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
             <VerifiedIcon className="h-6" />
           </div>
 
-          {message.timestamp && (
+          {extendedMessageResponse.timestamp && (
             <div className="invisible ml-0.5 translate-y-[1px] self-center font-medium text-gray-400 text-xs first-letter:capitalize group-hover:visible">
-              <span className="line-clamp-1">{formatDate(message.timestamp * 1000)}</span>
+              <span className="line-clamp-1">{formatDate(extendedMessageResponse.timestamp * 1000)}</span>
             </div>
           )}
         </div>
 
         <div className={`chat-${message.role} markdown-prose w-full min-w-full`}>
           <div>
-            {message.files && message.files.length > 0 && (
-              <div className="my-1 flex w-full flex-wrap gap-2 overflow-x-auto">
-                {message.files.map((file) => (
-                  <div key={file.id}>
-                    {file.type === "image" ? (
-                      <img src={file.url} alt={message.content} className="max-h-96 rounded-lg" />
-                    ) : (
-                      <div className="flex items-center space-x-2 rounded bg-white p-2 text-gray-500 text-xs dark:bg-gray-850">
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        <span>{file.name}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* {extendedMessageResponse.files &&
+              extendedMessageResponse.files.length > 0 && (
+                <div className="my-1 flex w-full flex-wrap gap-2 overflow-x-auto">
+                  {message.files.map((file) => (
+                    <div key={file.id}>
+                      {file.type === "image" ? (
+                        <img
+                          src={file.url}
+                          alt={message.content}
+                          className="max-h-96 rounded-lg"
+                        />
+                      ) : (
+                        <div className="flex items-center space-x-2 rounded bg-white p-2 text-gray-500 text-xs dark:bg-gray-850">
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          <span>{file.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )} */}
 
             {edit ? (
               <div className="my-2 w-full rounded-3xl bg-gray-50 px-5 py-3 dark:bg-gray-800">
@@ -185,11 +202,11 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
               </div>
             ) : (
               <div className="relative flex w-full flex-col" id="response-content-container">
-                {message.content === "" ? (
+                {messageContent === "" ? (
                   <div className="text-gray-500 dark:text-gray-400">
                     {webSearchEnabled ? "Generating search query..." : "Generating response..."}
                   </div>
-                ) : message.content ? (
+                ) : messageContent ? (
                   <div className="markdown-content">
                     <MarkdownTokens tokens={tokens} id={`message-${message.id}`} />
                   </div>
@@ -251,7 +268,7 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
                     isLastMessage ? "visible" : "invisible group-hover:visible"
                   } copy-response-button rounded-lg p-1.5 transition hover:bg-black/5 hover:text-black dark:hover:bg-white/5 dark:hover:text-white`}
                   onClick={() => {
-                    copyToClipboard(message.content);
+                    copyToClipboard(messageContent);
                   }}
                   title="Copy"
                 >
@@ -284,6 +301,8 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
             )}
           </div>
         )}
+
+        <Citations citations={citations} />
       </div>
     </div>
   );

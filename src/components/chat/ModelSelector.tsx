@@ -1,4 +1,5 @@
 import { Check, ChevronDown } from "lucide-react";
+import OpenAIIcon from "@/assets/icons/open-ai-icon.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +34,7 @@ function ModelSelectorItem({ value, index, availableModels, onChange, onRemove, 
                 aria-label="Select a model"
               >
                 <span className="self-end pb-[1px] font-normal text-xs opacity-50">Model</span>
-                {selectedModelObj ? selectedModelObj.name : "Select a model"}
+                {selectedModelObj ? selectedModelObj.id : "Select a model"}
                 <ChevronDown className="ml-2 size-3 self-center" strokeWidth={2.5} />
               </button>
             </DropdownMenuTrigger>
@@ -62,12 +63,12 @@ function ModelSelectorItem({ value, index, availableModels, onChange, onRemove, 
                             <div className="flex min-w-fit items-center">
                               <div className="mr-2 flex size-5 items-center justify-center">
                                 <img
-                                  src={model.info?.meta?.profile_image_url ?? "/static/favicon.png"}
+                                  src={model.info?.meta?.profile_image_url ?? OpenAIIcon}
                                   alt="Model"
                                   className="size-3.5"
                                 />
                               </div>
-                              <div className="line-clamp-1">{model.name}</div>
+                              <div className="line-clamp-1">{model.id}</div>
                             </div>
                           </div>
                         </div>
@@ -144,7 +145,7 @@ export default function ModelSelector() {
   };
 
   const disabledAdd = selectedModels.length >= models.length;
-
+  console.log("models", models, selectedModels);
   return (
     <div className="flex w-full flex-col items-start">
       {selectedModels.map((selectedModel, selectedModelIdx) => (

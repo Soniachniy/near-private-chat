@@ -1,63 +1,154 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import type { Message as MessageOpenAI } from "openai/resources/conversations/conversations";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
-import { chatClient } from "@/api/chat/client";
-import { useChatById } from "@/api/chat/queries";
-import { useChatWebSocket } from "@/api/chat/websocket/useChatWebSocket";
-import { TEMP_API_BASE_URL } from "@/api/constants";
-import { queryKeys } from "@/api/query-keys";
+import { useConversation } from "@/api/chat/queries/useConversation";
+import { useGetConversation } from "@/api/chat/queries/useGetConversation";
+import { useResponse } from "@/api/chat/queries/useResponse";
+// import { toast } from "sonner";
+// import { v4 as uuidv4 } from "uuid";
+// import { chatClient } from "@/api/chat/client";
+// import {
+//   useChatById,
+//   useCreateChat,
+//   useCreateNewChat,
+// } from "@/api/chat/queries";
+// import { useChatWebSocket } from "@/api/chat/websocket/useChatWebSocket";
+// import { TEMP_API_BASE_URL } from "@/api/constants";
 import ChatPlaceholder from "@/components/chat/ChatPlaceholder";
 import MessageInput from "@/components/chat/MessageInput";
 import MessageSkeleton from "@/components/chat/MessageSkeleton";
-import MultiResponseMessages from "@/components/chat/messages/MultiResponseMessages";
 import ResponseMessage from "@/components/chat/messages/ResponseMessage";
 import UserMessage from "@/components/chat/messages/UserMessage";
 import Navbar from "@/components/chat/Navbar";
 import LoadingScreen from "@/components/common/LoadingScreen";
 import { useChatStore } from "@/stores/useChatStore";
-import type { ChatHistory, FileItem, Message } from "@/types";
+import type { Conversation, FileItem } from "@/types";
 
-interface SendPromptParams {
-  prompt: string;
-  chatId?: string;
-  model?: string;
-  files?: FileItem[];
-}
+// interface SendPromptParams {
+//   prompt: string;
+//   chatId?: string;
+//   model?: string;
+//   files?: FileItem[];
+// }
 
 const Home: React.FC = () => {
   const { chatId } = useParams<{ chatId: string }>();
-  const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
+  const [opacity, setOpacity] = useState<number>(0);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [currentMessages, setCurrentMessages] = useState<Message[]>([]);
-  const { selectedModels, addMessage, updateMessage, currentChat, models } = useChatStore();
-  const messagesContainerElement = useRef<HTMLDivElement>(null);
-  const { isLoading: isChatLoading, isFetching } = useChatById(
-    { id: currentChatId || "", setCurrentMessages },
-    { enabled: !!currentChatId }
-  );
-  const { socket } = useChatWebSocket(setCurrentMessages);
+  const { updateMessage, currentChat, selectedModels } = useChatStore();
 
-  const handleSendMessage = async (content: string, files: FileItem[]) => {
-    if (!content || !selectedModels.length) return;
-    sendPromptMutation(
-      {
-        prompt: content,
-        chatId: currentChatId,
-        files,
-      },
-      {
-        onSuccess: (data) => {
-          if (!currentChatId && data?.chatId) {
-            navigate(`/c/${data.chatId}`);
-          }
+  const { createConversation, updateConversation } = useConversation();
+
+  const {
+    isLoading: isConversationsLoading,
+    isFetching: isConversationsFetching,
+    data: conversationData,
+  } = useGetConversation(chatId!);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const { generateChatTitle, startStream } = useResponse();
+
+  const handleSendMessage = async (content: string, files: FileItem[], webSearchEnabled: boolean) => {
+    console.log("handleSendMessage", content, files);
+    if (!chatId) {
+      const newConversation = await createConversation.mutateAsync(
+        {
+          items: [],
+          metadata: {
+            title: "Basic Conversation",
+          },
         },
-      }
-    );
+        {
+          onSuccess: async (data) => {
+            await navigate(`/c/${data.id}`);
+            queryClient.setQueryData(["conversation", data.id], (old: Conversation) => {
+              return {
+                ...old,
+                id: data.id,
+                created_at: data.created_at,
+                metadata: data.metadata,
+                object: data.object,
+                data: [
+                  {
+                    id: "empty", // TODO: update user prompt id  asap
+                    role: "user",
+                    type: "message",
+                    content: [
+                      {
+                        type: "input_text",
+                        text: content,
+                        annotations: [],
+                      },
+                    ],
+                  },
+                ],
+              };
+            });
+            await startStream.mutateAsync({
+              model: selectedModels[0],
+              conversation: data.id,
+              role: "user",
+              content: content,
+              queryClient: queryClient,
+              tools: webSearchEnabled ? [{ type: "web_search" }] : [],
+            });
+
+            await generateChatTitle.mutateAsync(
+              {
+                prompt: content,
+                model: "gpt-5-nano",
+              },
+              {
+                onSuccess: async (data) => {
+                  const responseItem = data.output.find((item) => item.type === "message");
+                  const messageContent = responseItem?.content.find((item) => item.type === "output_text")?.text;
+                  await updateConversation.mutateAsync({
+                    conversationId: newConversation.id,
+                    metadata: {
+                      title: messageContent || "",
+                    },
+                  });
+                },
+              }
+            );
+          },
+        }
+      );
+    } else {
+      queryClient.setQueryData(["conversation", chatId], (old: Conversation) => {
+        return {
+          ...old,
+          data: [
+            {
+              id: "empty",
+              role: "user",
+              type: "message",
+              content: [
+                {
+                  type: "input_text",
+                  text: content,
+                  annotations: [],
+                },
+              ],
+            },
+            ...(old.data ?? []),
+          ],
+        };
+      });
+      await startStream.mutateAsync({
+        model: selectedModels[0],
+        conversation: chatId,
+        role: "user",
+        content: content,
+        queryClient: queryClient,
+        tools: webSearchEnabled ? [{ type: "web_search" }] : [],
+      });
+    }
   };
 
   const handleEditMessage = (messageId: string, content: string) => {
@@ -74,326 +165,172 @@ const Home: React.FC = () => {
     console.log("Delete message:", messageId);
   };
 
-  const handleRegenerateResponse = async (message: Message) => {
+  const handleRegenerateResponse = async (message: MessageOpenAI) => {
     console.log("Regenerate response", message);
   };
 
-  const handleShowPreviousMessage = (message: Message) => {
-    if (message.parentId !== null) {
-      const messageId =
-        currentChat?.chat.history.messages[message.parentId].childrenIds[
-          Math.max(currentChat?.chat.history.messages[message.parentId].childrenIds.indexOf(message.id) - 1, 0)
-        ];
-      if (messageId) {
-        setCurrentMessages((prevMessages: Message[]) => {
-          const messageIndex = prevMessages.findIndex((m) => m.id === message.id);
-          if (messageIndex !== -1 && currentChat?.chat.history.messages[messageId]) {
-            prevMessages[messageIndex] = currentChat?.chat.history.messages[messageId];
-          }
-          return [...prevMessages];
-        });
-      }
-    }
+  const handleShowPreviousMessage = (message: MessageOpenAI) => {
+    console.log("Show previous message", message);
+    // if (message.parentId !== null) {
+    //   const messageId =
+    //     currentChat?.chat.history.messages[message.parentId].childrenIds[
+    //       Math.max(
+    //         currentChat?.chat.history.messages[
+    //           message.parentId
+    //         ].childrenIds.indexOf(message.id) - 1,
+    //         0
+    //       )
+    //     ];
+    //   if (messageId) {
+    //     setCurrentMessages((prevMessages: Message[]) => {
+    //       const messageIndex = prevMessages.findIndex(
+    //         (m) => m.id === message.id
+    //       );
+    //       if (
+    //         messageIndex !== -1 &&
+    //         currentChat?.chat.history.messages[messageId]
+    //       ) {
+    //         prevMessages[messageIndex] =
+    //           currentChat?.chat.history.messages[messageId];
+    //       }
+    //       return [...prevMessages];
+    //     });
+    //   }
+    // }
   };
 
-  const handleShowNextMessage = (message: Message) => {
-    if (!message.parentId) return;
-    const messageId =
-      currentChat?.chat.history.messages[message.parentId].childrenIds[
-        Math.min(
-          currentChat?.chat.history.messages[message.parentId].childrenIds.indexOf(message.id) + 1,
-          currentChat?.chat.history.messages[message.parentId].childrenIds.length - 1
-        )
-      ];
-    if (messageId) {
-      setCurrentMessages((prevMessages: Message[]) => {
-        const messageIndex = prevMessages.findIndex((m) => m.id === message.id);
-        if (messageIndex !== -1 && currentChat?.chat.history.messages[messageId]) {
-          prevMessages[messageIndex] = currentChat?.chat.history.messages[messageId];
-        }
-        return [...prevMessages];
-      });
-    }
+  const handleShowNextMessage = (message: MessageOpenAI) => {
+    console.log("Show next message", message);
+    // if (!message.parentId) return;
+    // const messageId =
+    //   currentChat?.chat.history.messages[message.parentId].childrenIds[
+    //     Math.min(
+    //       currentChat?.chat.history.messages[
+    //         message.parentId
+    //       ].childrenIds.indexOf(message.id) + 1,
+    //       currentChat?.chat.history.messages[message.parentId].childrenIds
+    //         .length - 1
+    //     )
+    //   ];
+    // if (messageId) {
+    //   setCurrentMessages((prevMessages: Message[]) => {
+    //     const messageIndex = prevMessages.findIndex((m) => m.id === message.id);
+    //     if (
+    //       messageIndex !== -1 &&
+    //       currentChat?.chat.history.messages[messageId]
+    //     ) {
+    //       prevMessages[messageIndex] =
+    //         currentChat?.chat.history.messages[messageId];
+    //     }
+    //     return [...prevMessages];
+    //   });
+    // }
   };
 
-  const handleMergeResponses = () => {
-    console.log("Merge responses");
-  };
-
-  const { mutate: sendPromptMutation } = useMutation({
-    mutationFn: async ({ prompt, model, files }: SendPromptParams) => {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("No token found");
-
-      if (!prompt && (!files || files.length === 0)) {
-        throw new Error("Please enter a prompt");
-      }
-
-      const selectedModel = model || selectedModels[0];
-      if (!selectedModel || selectedModel === "") {
-        toast.error("Model not selected");
-        return;
-      }
-      const filteredFiles = [...(currentChat?.chat.files ?? []), ...(files ?? [])].filter(
-        (item, index, array) => array.findIndex((i) => JSON.stringify(i) === JSON.stringify(item)) === index
-      );
-
-      const userMessageId = uuidv4();
-      const userMessage: Message = {
-        id: userMessageId,
-        parentId: currentChat?.chat.messages.length !== 0 ? (currentChat?.chat.messages.at(-1)?.id ?? null) : null,
-        childrenIds: [],
-        role: "user",
-        content: prompt,
-        timestamp: Math.floor(Date.now() / 1000),
-        models: [selectedModel],
-        modelName: "",
-        done: true,
-        files: files ?? [],
-      };
-
-      addMessage(userMessage);
-      setCurrentMessages((prevMessages: Message[]) => [...prevMessages, userMessage]);
-
-      const assistantMessageId = uuidv4();
-      const modelInfo = models.find((m) => m.id === selectedModel);
-      const assistantMessage: Message = {
-        id: assistantMessageId,
-        parentId: userMessageId,
-        childrenIds: [],
-        role: "assistant",
-        content: "",
-        timestamp: Math.floor(Date.now() / 1000),
-        models: [selectedModel],
-        modelName: modelInfo?.name || selectedModel,
-        model: selectedModel,
-        done: false,
-      };
-
-      addMessage(assistantMessage);
-      setCurrentMessages((prevMessages: Message[]) => [...prevMessages, assistantMessage]);
-
-      userMessage.childrenIds = [assistantMessageId];
-      updateMessage(userMessageId, {
-        childrenIds: [assistantMessageId],
-      });
-      setCurrentMessages((prevMessages: Message[]) => {
-        const message = prevMessages.find((message) => message.id === userMessageId);
-        if (message) {
-          message.childrenIds = [assistantMessageId];
-        }
-        return prevMessages;
-      });
-      let localChatId = currentChatId;
-
-      if (!localChatId) {
-        const newChatHistory: ChatHistory = {
-          messages: {
-            [userMessageId]: userMessage,
-            [assistantMessageId]: assistantMessage,
-          },
-          currentId: assistantMessageId,
-        };
-        const newChat = await chatClient.createNewChat({
-          id: uuidv4(),
-          title: prompt.slice(0, 50),
-          models: [selectedModel],
-          history: newChatHistory,
-          messages: [userMessage, assistantMessage],
-          timestamp: Date.now(),
-        });
-
-        queryClient.invalidateQueries({ queryKey: ["chats"] });
-        setCurrentChatId(newChat.id);
-        localChatId = newChat.id;
-      }
-
-      const updatedChat = await chatClient.updateChatById(localChatId!, {
-        messages: [...currentMessages, userMessage, assistantMessage],
-        history: {
-          ...currentChat?.chat.history,
-          messages: {
-            ...currentChat?.chat.history.messages,
-            [userMessageId]: userMessage,
-            [assistantMessageId]: assistantMessage,
-          },
-          currentId: assistantMessageId,
-        },
-        models: selectedModels,
-        params: currentChat?.chat.params,
-        files: filteredFiles,
-      });
-      console.log("updatedChat", updatedChat);
-
-      const allMessages = [...currentMessages, userMessage].map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-        ...(msg.files ? { files: msg.files } : {}),
-      }));
-
-      const modelItem = models.find((m) => m.id === selectedModel);
-
-      const isFirstMessage = allMessages.length === 1;
-
-      const response = await fetch(`${TEMP_API_BASE_URL}/api/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          model: selectedModel,
-          messages: allMessages,
-          stream: true,
-          params: {}, // Model-specific parameters
-          files: filteredFiles, // Files attached to the chat
-          tool_ids: [], // Selected tool IDs
-          tool_servers: [], // Tool servers configuration
-          features: {
-            image_generation: false,
-            code_interpreter: false,
-            web_search: false,
-          },
-          variables: {},
-          model_item: modelItem || {},
-          session_id: socket?.id || undefined,
-          chat_id: localChatId,
-          id: assistantMessageId,
-          ...(isFirstMessage
-            ? {
-                background_tasks: {
-                  title_generation: true,
-                  tags_generation: true,
-                },
-              }
-            : {}),
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "Failed to send message");
-      }
-
-      messagesContainerElement.current?.scrollIntoView({ behavior: "smooth" });
-
-      return {
-        chatId: currentChatId,
-        userMessageId,
-        assistantMessageId,
-      };
-    },
-    onSuccess: () => {},
-    onError: (error) => {
-      console.error("Failed to send message:", error);
-    },
-  });
-
+  // Reset opacity when chatId changes
   useEffect(() => {
-    setCurrentChatId(chatId);
-    queryClient.invalidateQueries({ queryKey: queryKeys.chat.byId(chatId!) });
-    const element = document.getElementById("messages-container");
-    element?.scrollIntoView({ behavior: "smooth" });
+    setOpacity(0);
   }, [chatId]);
 
-  if (isChatLoading || isFetching) {
+  useLayoutEffect(() => {
+    if (!conversationData || !scrollContainerRef.current) return;
+
+    const frameId = requestAnimationFrame(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+        setOpacity(1);
+      }
+    });
+    return () => cancelAnimationFrame(frameId);
+  }, [chatId, conversationData]);
+
+  if (isConversationsLoading || isConversationsFetching) {
     return <LoadingScreen />;
   }
 
-  if (!currentChatId) {
+  if (!chatId) {
     return (
       <>
         <Navbar />
         <ChatPlaceholder
           submitVoice={async (voice) => {
-            await handleSendMessage(voice, []);
+            await handleSendMessage(voice, [], false);
           }}
           submitPrompt={async (prompt) => {
-            await handleSendMessage(prompt, []);
+            await handleSendMessage(prompt, [], false);
           }}
         />
       </>
     );
   }
-  console.log("currentMessages", currentMessages);
+  const currentMessages = [...(conversationData?.data ?? [])].reverse();
+
   return (
     <div className="flex h-full flex-col bg-gray-900">
       <Navbar />
-      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pt-8">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pt-8 transition-opacity delay-200 duration-500"
+        style={{ opacity }}
+      >
         {currentMessages.map((message, idx) => {
-          const siblings =
-            currentChat?.chat.history.messages?.[message.parentId ?? ""]?.childrenIds ??
-            Object.values(currentChat?.chat.history.messages ?? {})
-              .filter((msg) => msg.parentId === null)
-              .map((msg) => msg.id);
+          if (message.type !== "message") {
+            return null;
+          }
 
-          if (message.role === "user") {
+          if (message.type === "message" && message.role === "user") {
+            console.log("user message", message);
             return (
               <UserMessage
-                key={message.id}
-                history={currentChat?.chat.history || { messages: {}, currentId: null }}
-                messageId={message.id}
-                siblings={siblings}
+                message={message}
                 isFirstMessage={idx === 0}
                 readOnly={false}
                 editMessage={handleEditMessage}
                 deleteMessage={handleDeleteMessage}
               />
             );
-          } else if (message.content === "" && !message.error) {
+          } else if (message.content.join("") === "") {
+            // } else if (message.content.join("") === "" && !message.error) {
             return <MessageSkeleton key={message.id} />;
           } else {
-            const hasMultipleModels =
-              message.parentId && (currentChat?.chat.history.messages[message.parentId]?.models.length ?? 1) > 1;
+            // const hasMultipleModels = false;
 
-            if (hasMultipleModels) {
-              return (
-                <MultiResponseMessages
-                  key={message.id}
-                  history={
-                    currentChat?.chat.history || {
-                      messages: {},
-                      currentId: null,
-                    }
-                  }
-                  messageId={message.id}
-                  isLastMessage={idx === currentMessages.length - 1}
-                  readOnly={false}
-                  webSearchEnabled={false}
-                  saveMessage={handleSaveMessage}
-                  deleteMessage={handleDeleteMessage}
-                  regenerateResponse={handleRegenerateResponse}
-                  mergeResponses={handleMergeResponses}
-                  showPreviousMessage={handleShowPreviousMessage}
-                  showNextMessage={handleShowNextMessage}
-                />
-              );
-            } else {
-              return (
-                <ResponseMessage
-                  key={message.id}
-                  history={
-                    currentChat?.chat.history || {
-                      messages: {},
-                      currentId: null,
-                    }
-                  }
-                  messageId={message.id}
-                  siblings={siblings}
-                  isLastMessage={idx === currentMessages.length - 1}
-                  readOnly={false}
-                  webSearchEnabled={false}
-                  saveMessage={handleSaveMessage}
-                  deleteMessage={handleDeleteMessage}
-                  regenerateResponse={handleRegenerateResponse}
-                  showPreviousMessage={handleShowPreviousMessage}
-                  showNextMessage={handleShowNextMessage}
-                />
-              );
-            }
+            // if (hasMultipleModels) {
+            //   return (
+            //     <MultiResponseMessages
+            //       message={message}
+            //       isLastMessage={idx === currentMessages.length - 1}
+            //       readOnly={false}
+            //       webSearchEnabled={false}
+            //       saveMessage={handleSaveMessage}
+            //       deleteMessage={handleDeleteMessage}
+            //       regenerateResponse={handleRegenerateResponse}
+            //       mergeResponses={handleMergeResponses}
+            //       showPreviousMessage={handleShowPreviousMessage}
+            //       showNextMessage={handleShowNextMessage}
+            //     />
+            //   );
+            // } else {
+            return (
+              <ResponseMessage
+                message={message}
+                siblings={[]}
+                isLastMessage={idx === currentMessages.length - 1}
+                readOnly={false}
+                webSearchEnabled={false}
+                saveMessage={handleSaveMessage}
+                deleteMessage={handleDeleteMessage}
+                regenerateResponse={handleRegenerateResponse}
+                showPreviousMessage={handleShowPreviousMessage}
+                showNextMessage={handleShowNextMessage}
+              />
+            );
+            // }
           }
         })}
-        <div ref={messagesContainerElement} id="messages-container" />
       </div>
 
       <MessageInput messages={currentChat?.chat.messages} onSubmit={handleSendMessage} />

@@ -1,5 +1,6 @@
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { authClient } from "@/api/auth/client";
 import { useConfig } from "@/api/config/queries";
 import CheckIcon from "@/assets/icons/check-icon.svg?react";
@@ -8,14 +9,16 @@ import GoogleIcon from "@/assets/icons/google-icon.svg?react";
 import NearAIIcon from "@/assets/icons/near-icon-green.svg?react";
 import type { OAuth2Provider } from "@/types";
 import Spinner from "../components/common/Spinner";
+import { APP_ROUTES } from "./routes";
 
 const TERMS_VERSION = "V1";
 
 const AuthPage: React.FC = () => {
   const { data: config } = useConfig();
-
+  const [searchParams] = useSearchParams();
+  console.log(searchParams.get("token"), "searchParams");
   const [agreedTerms, setAgreedTerms] = useState(localStorage.getItem("agreedTerms") === TERMS_VERSION);
-
+  const navigate = useNavigate();
   const checkAgreeTerms = () => {
     if (!agreedTerms) {
       alert("You must agree to the Terms of Service and Privacy Policy to proceed.");
@@ -28,6 +31,14 @@ const AuthPage: React.FC = () => {
     if (!checkAgreeTerms()) return;
     authClient.oauth2SignIn(provider);
   };
+
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (token) {
+      localStorage.setItem("token", token);
+      navigate(APP_ROUTES.HOME, { replace: true });
+    }
+  }, [searchParams]);
 
   if (!config) {
     return (
@@ -96,7 +107,9 @@ const AuthPage: React.FC = () => {
                   }}
                 />
                 <div
-                  className={`mt-0.5 h-4 w-4 ${agreedTerms ? "bg-[#00EC97]" : "bg-gray-50"} flex items-center justify-center rounded shadow`}
+                  className={`mt-0.5 h-4 w-4 ${
+                    agreedTerms ? "bg-[#00EC97]" : "bg-gray-50"
+                  } flex items-center justify-center rounded shadow`}
                 >
                   <CheckIcon
                     className={`mt-[1px] h-3 w-3 transition-opacity ${agreedTerms ? "opacity-100" : "opacity-0"}`}

@@ -1,6 +1,13 @@
+import type { QueryClient } from "@tanstack/react-query";
+import type {
+  ConversationCreateParams,
+  ConversationUpdateParams,
+  Conversation as OpenAIConversation,
+} from "openai/resources/conversations/conversations.mjs";
+import type { Responses, Tool } from "openai/resources/responses/responses.mjs";
 import { ApiClient } from "@/api/base-client";
 import { getTimeRange } from "@/lib/time";
-import type { Chat, ChatInfo, Tag } from "@/types";
+import type { Chat, ChatInfo, Conversation, ConversationItemsResponse, Tag } from "@/types";
 
 class ChatClient extends ApiClient {
   constructor() {
@@ -25,9 +32,87 @@ class ChatClient extends ApiClient {
     };
   }
 
-  async createNewChat(chat: object) {
-    return this.post<Chat>("/chats/new", {
-      chat: chat,
+  sentPrompt(prompt: string, role: "user" | "assistant" = "user", model: string = "gpt-5-nano", conversation: string) {
+    return this.post<Responses.Response>(
+      "/responses",
+      {
+        model: model,
+        input: [{ role, content: prompt }],
+        conversation,
+      },
+      {
+        apiVersion: "v2",
+      }
+    );
+  }
+
+  generateChatTitle(prompt: string, model: string = "gpt-5-nano") {
+    return this.post<Responses.Response>(
+      "/responses",
+      {
+        model: model,
+        input: [
+          {
+            role: "user",
+            content: `Generate a title for the following conversation: ${prompt}, it should be short and concise, return only the title, nothing else.`,
+          },
+        ],
+      },
+      {
+        apiVersion: "v2",
+      }
+    );
+  }
+
+  createConversation(conversation: ConversationCreateParams) {
+    return this.post<OpenAIConversation>("/conversations", conversation, {
+      apiVersion: "v2",
+    });
+  }
+
+  // unnecessary since we add conversation id to the response request
+  // addItemsToConversation(
+  //   conversationId: string,
+  //   items: Responses.ResponseInputItem[]
+  // ) {
+  //   console.log("addItemsToConversation", conversationId, items);
+  //   return this.post<Responses.ResponseInputItem[]>(
+  //     `/conversations/${conversationId}/items`,
+  //     { items },
+  //     {
+  //       apiVersion: "v2",
+  //     }
+  //   );
+  // }
+
+  getConversation(id: string) {
+    return this.get<Conversation>(`/conversations/${id}`, {
+      apiVersion: "v2",
+    });
+  }
+
+  updateConversation(conversationId: string, metadata: ConversationUpdateParams["metadata"]) {
+    return this.post<ConversationUpdateParams>(
+      `/conversations/${conversationId}`,
+      {
+        metadata: metadata,
+      },
+      {
+        apiVersion: "v2",
+      }
+    );
+  }
+  getConversationsIds() {
+    const conversations = localStorage.getItem("conversations");
+    if (conversations) {
+      return JSON.parse(conversations);
+    }
+    return [];
+  }
+
+  getConversationItems(id: string) {
+    return this.get<ConversationItemsResponse>(`/conversations/${id}/items`, {
+      apiVersion: "v2",
     });
   }
 
@@ -40,17 +125,22 @@ class ChatClient extends ApiClient {
     });
   }
 
+  async getConversations() {
+    return this.get<Conversation[]>(`/conversations`, {
+      apiVersion: "v2",
+    });
+  }
+
   async getChatList(page: number | null = null) {
     const searchParams = new URLSearchParams();
     if (page !== null) {
       searchParams.append("page", `${page}`);
     }
-    const res = await this.get<ChatInfo[]>(`/chats/?${searchParams.toString()}`);
+    const res = await this.get<Conversation[]>(`/conversations`, {
+      apiVersion: "v2",
+    });
 
-    return res.map((chat) => ({
-      ...chat,
-      time_range: getTimeRange(chat.updated_at),
-    }));
+    return res;
   }
 
   //TODO: Is it necessary?
@@ -204,6 +294,27 @@ class ChatClient extends ApiClient {
 
   async archiveAllChats() {
     return this.post<Chat>(`/chats/archive/all`);
+  }
+
+  async startStream(
+    model: string,
+    role: "user" | "assistant",
+    content: string,
+    conversation: string,
+    queryClient: QueryClient,
+    tools?: Tool[]
+  ) {
+    return this.stream(
+      "/responses",
+      {
+        model,
+        input: [{ role, content }],
+        conversation,
+        stream: true,
+        tools,
+      },
+      { apiVersion: "v2", queryClient }
+    );
   }
 }
 

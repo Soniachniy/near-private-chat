@@ -1,29 +1,56 @@
-import { TEMP_API_BASE_URL } from "./constants";
+import type { QueryClient } from "@tanstack/react-query";
+import { createParser, type EventSourceMessage } from "eventsource-parser";
+import OpenAI from "openai";
+import type { Responses } from "openai/resources/responses/responses.mjs";
+import type { Conversation } from "@/types";
+import { TEMP_API_BASE_URL, TEMP_API_BASE_URL_NGROK } from "./constants";
 
 export interface ApiClientOptions {
   baseURL?: string;
+  baseURLNgrok?: string;
   apiPrefix?: string;
   defaultHeaders?: Record<string, string>;
   includeAuth?: boolean;
 }
 
+export interface OpenApiEvent {
+  event: string;
+  data: string;
+}
+
 export class ApiClient {
-  protected baseURL: string;
+  protected baseURLV1: string;
+  protected baseURLV2: string;
   protected defaultHeaders: Record<string, string>;
   protected includeAuth: boolean;
+  protected openAIClient: OpenAI;
 
   constructor(options: ApiClientOptions = {}) {
-    const { baseURL = TEMP_API_BASE_URL, apiPrefix = "/api", defaultHeaders = {}, includeAuth = true } = options;
+    const {
+      baseURL = TEMP_API_BASE_URL,
+      baseURLNgrok = TEMP_API_BASE_URL_NGROK,
+      apiPrefix = "/api",
+      defaultHeaders = {},
+      includeAuth = true,
+    } = options;
+    const openAIToken = localStorage.getItem("token");
 
-    this.baseURL = `${baseURL}${apiPrefix}`;
+    this.baseURLV1 = `${baseURL}${apiPrefix}`;
+    this.baseURLV2 = `${baseURLNgrok}/v1`;
     this.defaultHeaders = defaultHeaders;
     this.includeAuth = includeAuth;
+    this.openAIClient = new OpenAI({
+      baseURL: `${baseURLNgrok}/v1`,
+      apiKey: openAIToken ?? "",
+      dangerouslyAllowBrowser: true,
+    });
   }
 
-  protected async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  protected async request<T>(endpoint: string, options: RequestInit & { apiVersion?: "v1" | "v2" } = {}): Promise<T> {
     try {
       const headers: Record<string, string> = {
         ...this.defaultHeaders,
+        "ngrok-skip-browser-warning": "1000",
         ...((options.headers as Record<string, string>) || {}),
       };
 
@@ -35,8 +62,8 @@ export class ApiClient {
           throw new Error("No token found");
         }
       }
-
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
+      const baseURL = options.apiVersion === "v2" ? this.baseURLV2 : this.baseURLV1;
+      const response = await fetch(`${baseURL}${endpoint}`, {
         ...options,
         headers,
       });
@@ -54,14 +81,19 @@ export class ApiClient {
     }
   }
 
-  protected async get<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  protected async get<T>(endpoint: string, options: RequestInit & { apiVersion?: "v1" | "v2" } = {}): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
       method: "GET",
+      apiVersion: options.apiVersion || "v1",
     });
   }
 
-  protected async post<T>(endpoint: string, body?: unknown, options: RequestInit = {}): Promise<T> {
+  protected async post<T>(
+    endpoint: string,
+    body?: unknown,
+    options: RequestInit & { apiVersion?: "v1" | "v2"; stream?: boolean } = {}
+  ): Promise<T> {
     const requestOptions: RequestInit = {
       ...options,
       method: "POST",
@@ -71,9 +103,160 @@ export class ApiClient {
       requestOptions.body = JSON.stringify(body);
     }
 
-    return this.request<T>(endpoint, requestOptions);
+    return this.request<T>(endpoint, {
+      ...requestOptions,
+      apiVersion: options.apiVersion || "v1",
+    });
   }
 
+  protected async stream(
+    endpoint: string,
+    body?: unknown,
+    options: RequestInit & {
+      apiVersion?: "v1" | "v2";
+      queryClient?: QueryClient;
+    } = {}
+  ): Promise<void> {
+    const requestOptions: RequestInit = {
+      ...options,
+      method: "POST",
+    };
+
+    if (body !== undefined) {
+      requestOptions.body = JSON.stringify(body);
+    }
+    try {
+      const headers: Record<string, string> = {
+        ...this.defaultHeaders,
+        "ngrok-skip-browser-warning": "1000",
+        ...((options.headers as Record<string, string>) || {}),
+      };
+
+      if (this.includeAuth) {
+        const token = localStorage.getItem("token");
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        } else {
+          throw new Error("No token found");
+        }
+      }
+      const baseURL = options.apiVersion === "v2" ? this.baseURLV2 : this.baseURLV1;
+      const response = await fetch(`${baseURL}${endpoint}`, {
+        ...requestOptions,
+        headers,
+      });
+
+      if (!response.body) {
+        throw new Error("ReadableStream not supported in this browser.");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      const parser = createParser({
+        onEvent: onParse,
+      });
+
+      function onParse(event: EventSourceMessage) {
+        const data: Responses.ResponseStreamEvent = JSON.parse(event.data);
+        switch (data.type) {
+          case "response.output_text.delta":
+            options.queryClient?.setQueryData(
+              ["conversation", (body as { conversation?: string })?.conversation || ""],
+              (old: Conversation) => {
+                const newData = { ...old };
+                const currentConversationData = newData.data?.find((item) => item.id === data.item_id);
+                if (currentConversationData && !currentConversationData?.content?.length) {
+                  currentConversationData.content = [
+                    {
+                      type: "output_text",
+                      text: data.delta,
+                      annotations: [],
+                    },
+                  ];
+                } else {
+                  if (currentConversationData!.content[0].type === "output_text") {
+                    currentConversationData!.content[0].text += data.delta;
+                  }
+                }
+                return {
+                  data: [...(newData.data ?? [])],
+                  ...old,
+                  lastUpdatedAt: Date.now(),
+                };
+              },
+              {
+                updatedAt: Date.now(),
+              }
+            );
+            break;
+          case "response.output_item.done":
+            options.queryClient?.setQueryData(
+              ["conversation", (body as { conversation?: string })?.conversation || ""],
+              (old: Conversation) => {
+                const newData: Conversation = { ...old };
+                const currentConversationData = newData.data?.find((item) => item.id === data.item.id);
+                if (data.item.type === "message" && currentConversationData) {
+                  currentConversationData.content = data.item.content;
+                  currentConversationData.status = data.item.status;
+                }
+
+                return {
+                  data: [...(newData.data ?? [])],
+                  ...old,
+                  lastUpdatedAt: Date.now(),
+                };
+              }
+            );
+            break;
+          case "response.output_item.added":
+            options.queryClient?.setQueryData(
+              ["conversation", (body as { conversation?: string })?.conversation || ""],
+              (old: Conversation) => {
+                const dataObject =
+                  data.item.type === "reasoning"
+                    ? {
+                        id: data.item.id,
+                        type: "reasoning",
+                        summary: data.item.summary,
+                      }
+                    : {
+                        id: data.item.id,
+                        type: "message",
+                        role: "assistant",
+                        content: [
+                          {
+                            type: "output_text",
+                            text: "",
+                            annotations: [],
+                          },
+                        ],
+                      };
+                return {
+                  ...old,
+                  data: [dataObject, ...(old?.data ?? [])],
+                  last_id: data.item.id,
+                };
+              }
+            );
+            break;
+        }
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        parser.feed(chunk);
+      }
+
+      console.log("✅ Stream finished");
+    } catch (err) {
+      console.error(err);
+      // biome-ignore lint/suspicious/noExplicitAny: explanation
+      throw (err as any)?.detail || err || "An unknown error occurred";
+    }
+  }
   protected async put<T>(endpoint: string, body?: unknown, options: RequestInit = {}): Promise<T> {
     const requestOptions: RequestInit = {
       ...options,

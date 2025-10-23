@@ -4,12 +4,14 @@ import { Link } from "react-router";
 import { useRenameChat } from "@/api/chat/queries";
 import { cn } from "@/lib/time";
 import { toChatRoute } from "@/pages/routes";
-import type { ChatInfo } from "@/types";
+import type { ChatInfo, ConversationInfo } from "@/types";
 import ChatMenu from "../sidebar/ChatMenu";
 import { CompactTooltip } from "../ui/tooltip";
 
+const BASIC_PLACEHOLDER = "TEMP CHAT";
+
 type ChatItemProps = {
-  chat: ChatInfo;
+  chat: ChatInfo | ConversationInfo;
   isCurrentChat: boolean;
   isPinned?: boolean;
 };
@@ -17,7 +19,8 @@ type ChatItemProps = {
 const ChatItem = ({ chat, isCurrentChat, isPinned }: ChatItemProps) => {
   const [showRename, setShowRename] = useState(false);
   const renameRef = useRef<HTMLInputElement>(null);
-  const [renameInput, setRenameInput] = useState(chat.title);
+
+  const [renameInput, setRenameInput] = useState(chat.title ?? BASIC_PLACEHOLDER);
   const { mutate: renameChat } = useRenameChat();
 
   console.log("isPinned", { isPinned, isCurrentChat });
@@ -74,7 +77,7 @@ const ChatItem = ({ chat, isCurrentChat, isPinned }: ChatItemProps) => {
           <>
             <div className="flex w-full flex-1 self-center">
               <div dir="auto" className="h-[20px] w-full self-center overflow-hidden text-left text-white">
-                {chat.title}
+                {chat.title ?? BASIC_PLACEHOLDER}
               </div>
             </div>
             <ChatMenu chat={chat} handleRename={handleRename} isPinned={isPinned} />

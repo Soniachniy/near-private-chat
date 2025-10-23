@@ -35,7 +35,7 @@ interface MessageInputProps {
   webSearchEnabled?: boolean;
   codeInterpreterEnabled?: boolean;
   placeholder?: string;
-  onSubmit: (prompt: string, files: FileItem[]) => Promise<void>;
+  onSubmit: (prompt: string, files: FileItem[], webSearchEnabled: boolean) => Promise<void>;
   onUpload?: (detail: Record<string, unknown>) => void;
 }
 
@@ -304,7 +304,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (prompt.trim() || files.length > 0) {
-      onSubmit(prompt, files);
+      onSubmit(prompt, files, webSearchEnabled);
       setPrompt("");
       setFiles([]);
     }
@@ -352,7 +352,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       if (enterPressed) {
         e.preventDefault();
         if (prompt !== "" || files.length > 0) {
-          onSubmit(prompt, files);
+          onSubmit(prompt, files, webSearchEnabled);
           setFiles([]);
           setPrompt("");
         }
@@ -701,31 +701,29 @@ const MessageInput: React.FC<MessageInputProps> = ({
                           </button>
                         )}
 
-                        {user && (
-                          <>
-                            <button
-                              onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-                              type="button"
-                              className={`flex max-w-full items-center gap-1.5 overflow-hidden rounded-full border px-1 py-0.5 font-medium text-xs transition-colors duration-300 focus:outline-hidden ${
-                                webSearchEnabled
-                                  ? "border-blue-400/20 bg-blue-100 text-blue-500 dark:bg-blue-500/20"
-                                  : "border-transparent bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-                              }`}
-                            >
-                              <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={1.75}
-                                  d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-                                />
-                              </svg>
-                              <span className="hidden translate-y-[0.5px] overflow-hidden text-ellipsis whitespace-nowrap xl:block">
-                                Web Search
-                              </span>
-                            </button>
-                          </>
-                        )}
+                        <>
+                          <button
+                            onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                            type="button"
+                            className={`flex max-w-full items-center gap-1.5 overflow-hidden rounded-full border px-1 py-0.5 font-medium text-xs transition-colors duration-300 focus:outline-hidden ${
+                              webSearchEnabled
+                                ? "border-blue-400/20 bg-blue-100 text-blue-500 dark:bg-blue-500/20"
+                                : "border-transparent bg-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                            }`}
+                          >
+                            <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1.75}
+                                d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                              />
+                            </svg>
+                            <span className="hidden translate-y-[0.5px] overflow-hidden text-ellipsis whitespace-nowrap xl:block">
+                              Web Search
+                            </span>
+                          </button>
+                        </>
                       </div>
                     </div>
 
