@@ -48,6 +48,7 @@ export const queryKeys = {
     byShareId: (shareId: string) => [CHAT_KEY, "byShareId", shareId],
     pinnedStatus: (id: string) => [CHAT_KEY, "pinnedStatus", id],
     tags: (id: string) => [CHAT_KEY, "tags", id],
+    files: [CHAT_KEY, "files"],
   },
 
   users: {
