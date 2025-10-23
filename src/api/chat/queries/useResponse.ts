@@ -1,4 +1,5 @@
-import { type QueryClient, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import type { StartStreamProps } from "@/types";
 import { chatClient } from "../client";
 
 export const useResponse = () => {
@@ -23,20 +24,8 @@ export const useResponse = () => {
   });
 
   const startStream = useMutation({
-    mutationFn: async ({
-      model,
-      role,
-      content,
-      conversation,
-      queryClient,
-    }: {
-      model: string;
-      role: "user" | "assistant";
-      content: string;
-      conversation: string;
-      queryClient: QueryClient;
-    }) => {
-      return chatClient.startStream(model, role, content, conversation, queryClient);
+    mutationFn: async (props: StartStreamProps) => {
+      return chatClient.startStream(props);
     },
   });
 

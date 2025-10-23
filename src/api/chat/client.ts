@@ -1,4 +1,3 @@
-import type { QueryClient } from "@tanstack/react-query";
 import type {
   ConversationCreateParams,
   ConversationUpdateParams,
@@ -7,7 +6,8 @@ import type {
 import type { Responses } from "openai/resources/responses/responses.mjs";
 import { ApiClient } from "@/api/base-client";
 import { getTimeRange } from "@/lib/time";
-import type { Chat, ChatInfo, Conversation, ConversationItemsResponse, Tag } from "@/types";
+import type { Chat, ChatInfo, Conversation, ConversationItemsResponse, StartStreamProps, Tag } from "@/types";
+import type { FileOpenAIResponse, FilesOpenaiResponse } from "@/types/openai";
 
 class ChatClient extends ApiClient {
   constructor() {
@@ -296,18 +296,33 @@ class ChatClient extends ApiClient {
     return this.post<Chat>(`/chats/archive/all`);
   }
 
-  async startStream(
-    model: string,
-    role: "user" | "assistant",
-    content: string,
-    conversation: string,
-    queryClient: QueryClient
-  ) {
-    return this.stream(
-      "/responses",
-      { model, input: [{ role, content }], conversation, stream: true },
-      { apiVersion: "v2", queryClient }
-    );
+  async startStream({ model, role, content, conversation, queryClient }: StartStreamProps) {
+    const input = Array.isArray(content)
+      ? [{ role, content }]
+      : [{ role, content: [{ type: "input_text", text: content }] }];
+    return this.stream("/responses", { model, input, conversation, stream: true }, { apiVersion: "v2", queryClient });
+  }
+
+  async getFiles() {
+    return this.get<FilesOpenaiResponse>("/files", { apiVersion: "v2" });
+  }
+
+  //https://platform.openai.com/docs/api-reference/files/create?lang=node.js
+  async uploadFile(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("purpose", "assistants");
+    formData.append("expires_after[anchor]", "created_at");
+    formData.append("expires_after[seconds]", "3600");
+
+    return this.post<FileOpenAIResponse>("/files", formData, {
+      apiVersion: "v2",
+      withoutHeaders: true,
+    });
+  }
+
+  async deleteFile(id: string) {
+    return this.delete(`/files/${id}`, { apiVersion: "v2" });
   }
 }
 

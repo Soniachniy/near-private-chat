@@ -1,3 +1,4 @@
+import type { QueryClient } from "@tanstack/react-query";
 import type {
   Message as MessageOpenAI,
   Conversation as OpenAIConversation,
@@ -131,7 +132,6 @@ export interface Chat {
     messages: Message[];
     tags: string[];
     timestamp: number;
-    files: FileItem[];
   };
   updated_at: number;
   created_at: number;
@@ -156,7 +156,6 @@ export interface Message {
   model?: string;
   error?: boolean;
   sources?: unknown[];
-  files?: FileItem[];
   usage?: {
     prompt_tokens?: number;
     completion_tokens?: number;
@@ -421,31 +420,6 @@ export interface ChatHistory {
   currentId: string | null;
 }
 
-export interface FileItem {
-  type: "file" | "image" | "collection" | "doc";
-  file?: {
-    id: string;
-    meta?: {
-      collection_name: string;
-    };
-    collection_name?: string;
-    error?: string;
-  };
-  id?: string;
-  url: string;
-  name: string;
-  collection_name?: string;
-  status?: "uploading" | "uploaded";
-  size?: number;
-  error?: string;
-  itemId?: string;
-  context?: string;
-  collection?: boolean;
-  data?: {
-    content?: string;
-  };
-}
-
 export interface HistoryMessage {
   done?: boolean;
 }
@@ -453,4 +427,12 @@ export interface HistoryMessage {
 export interface History {
   currentId?: string;
   messages?: Record<string, HistoryMessage>;
+}
+
+export interface StartStreamProps {
+  model: string;
+  role: "user" | "assistant";
+  content: string | any[];
+  conversation: string;
+  queryClient: QueryClient;
 }

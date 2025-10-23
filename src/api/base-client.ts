@@ -46,13 +46,18 @@ export class ApiClient {
     });
   }
 
-  protected async request<T>(endpoint: string, options: RequestInit & { apiVersion?: "v1" | "v2" } = {}): Promise<T> {
+  protected async request<T>(
+    endpoint: string,
+    options: RequestInit & { apiVersion?: "v1" | "v2"; withoutHeaders?: boolean } = {}
+  ): Promise<T> {
     try {
-      const headers: Record<string, string> = {
-        ...this.defaultHeaders,
-        "ngrok-skip-browser-warning": "1000",
-        ...((options.headers as Record<string, string>) || {}),
-      };
+      const headers: Record<string, string> = options.withoutHeaders
+        ? { "ngrok-skip-browser-warning": "1000" }
+        : {
+            ...this.defaultHeaders,
+            "ngrok-skip-browser-warning": "1000",
+            ...((options.headers as Record<string, string>) || {}),
+          };
 
       if (this.includeAuth) {
         const token = localStorage.getItem("token");
@@ -92,7 +97,7 @@ export class ApiClient {
   protected async post<T>(
     endpoint: string,
     body?: unknown,
-    options: RequestInit & { apiVersion?: "v1" | "v2"; stream?: boolean } = {}
+    options: RequestInit & { apiVersion?: "v1" | "v2"; stream?: boolean; withoutHeaders?: boolean } = {}
   ): Promise<T> {
     const requestOptions: RequestInit = {
       ...options,
@@ -100,12 +105,17 @@ export class ApiClient {
     };
 
     if (body !== undefined) {
-      requestOptions.body = JSON.stringify(body);
+      if (body instanceof FormData) {
+        requestOptions.body = body;
+      } else {
+        requestOptions.body = JSON.stringify(body);
+      }
     }
 
     return this.request<T>(endpoint, {
       ...requestOptions,
       apiVersion: options.apiVersion || "v1",
+      withoutHeaders: options.withoutHeaders || false,
     });
   }
 
@@ -123,7 +133,11 @@ export class ApiClient {
     };
 
     if (body !== undefined) {
-      requestOptions.body = JSON.stringify(body);
+      if (body instanceof FormData) {
+        requestOptions.body = body;
+      } else {
+        requestOptions.body = JSON.stringify(body);
+      }
     }
     try {
       const headers: Record<string, string> = {
@@ -289,16 +303,24 @@ export class ApiClient {
     };
 
     if (body !== undefined) {
-      requestOptions.body = JSON.stringify(body);
+      if (body instanceof FormData) {
+        requestOptions.body = body;
+      } else {
+        requestOptions.body = JSON.stringify(body);
+      }
     }
 
     return this.request<T>(endpoint, requestOptions);
   }
 
-  protected async delete<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  protected async delete<T>(
+    endpoint: string,
+    options: RequestInit & { apiVersion?: "v1" | "v2"; stream?: boolean } = {}
+  ): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
       method: "DELETE",
+      apiVersion: options.apiVersion || "v1",
     });
   }
 
@@ -309,7 +331,11 @@ export class ApiClient {
     };
 
     if (body !== undefined) {
-      requestOptions.body = JSON.stringify(body);
+      if (body instanceof FormData) {
+        requestOptions.body = body;
+      } else {
+        requestOptions.body = JSON.stringify(body);
+      }
     }
 
     return this.request<T>(endpoint, requestOptions);
