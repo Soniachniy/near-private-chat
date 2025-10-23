@@ -24,7 +24,8 @@ import UserMessage from "@/components/chat/messages/UserMessage";
 import Navbar from "@/components/chat/Navbar";
 import LoadingScreen from "@/components/common/LoadingScreen";
 import { useChatStore } from "@/stores/useChatStore";
-import type { Conversation, FileItem } from "@/types";
+import type { Conversation } from "@/types";
+import { type FileContentItem, generateContentFileDataForOpenAI } from "@/types/openai";
 
 // interface SendPromptParams {
 //   prompt: string;
@@ -53,8 +54,13 @@ const Home: React.FC = () => {
 
   const { generateChatTitle, startStream } = useResponse();
 
-  const handleSendMessage = async (content: string, files: FileItem[], webSearchEnabled: boolean) => {
-    console.log("handleSendMessage", content, files);
+  const handleSendMessage = async (content: string, files: FileContentItem[], webSearchEnabled: boolean = false) => {
+    const contentItems = [
+      { type: "input_text", text: content },
+      ...files.map((file) => generateContentFileDataForOpenAI(file)),
+    ];
+    console.log("handleSendMessage", content, files, contentItems);
+
     if (!chatId) {
       const newConversation = await createConversation.mutateAsync(
         {
@@ -78,13 +84,7 @@ const Home: React.FC = () => {
                     id: "empty", // TODO: update user prompt id  asap
                     role: "user",
                     type: "message",
-                    content: [
-                      {
-                        type: "input_text",
-                        text: content,
-                        annotations: [],
-                      },
-                    ],
+                    content: contentItems,
                   },
                 ],
               };
@@ -93,7 +93,7 @@ const Home: React.FC = () => {
               model: selectedModels[0],
               conversation: data.id,
               role: "user",
-              content: content,
+              content: contentItems,
               queryClient: queryClient,
               tools: webSearchEnabled ? [{ type: "web_search" }] : [],
             });
@@ -128,13 +128,7 @@ const Home: React.FC = () => {
               id: "empty",
               role: "user",
               type: "message",
-              content: [
-                {
-                  type: "input_text",
-                  text: content,
-                  annotations: [],
-                },
-              ],
+              content: contentItems,
             },
             ...(old.data ?? []),
           ],
@@ -144,7 +138,7 @@ const Home: React.FC = () => {
         model: selectedModels[0],
         conversation: chatId,
         role: "user",
-        content: content,
+        content: contentItems,
         queryClient: queryClient,
         tools: webSearchEnabled ? [{ type: "web_search" }] : [],
       });

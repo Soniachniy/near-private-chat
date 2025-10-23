@@ -1,21 +1,23 @@
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
-import { TEMP_API_BASE_URL } from "@/api/constants";
+import { chatClient } from "@/api/chat/client";
 import SendMessageIcon from "@/assets/icons/send-message.svg?react";
+import { compressImage } from "@/lib/image";
 import { cn } from "@/lib/time";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { useUserStore } from "@/stores/useUserStore";
 import { useViewStore } from "@/stores/useViewStore";
-import type { FileItem, History, Message, Model } from "@/types";
+import type { History, Message, Model } from "@/types";
+import type { FileContentItem } from "@/types/openai";
 
 interface MessageInputProps {
   messages?: Message[];
   transparentBackground?: boolean;
   onChange?: (data: {
     prompt: string;
-    files: FileItem[];
+    files: FileContentItem[];
     selectedToolIds: string[];
     imageGenerationEnabled: boolean;
     webSearchEnabled: boolean;
@@ -28,61 +30,18 @@ interface MessageInputProps {
   history?: History;
   taskIds?: string[] | null;
   prompt?: string;
-  files?: FileItem[];
+  files?: FileContentItem[];
   toolServers?: Record<string, unknown>[];
   selectedToolIds?: string[];
   imageGenerationEnabled?: boolean;
   webSearchEnabled?: boolean;
   codeInterpreterEnabled?: boolean;
   placeholder?: string;
-  onSubmit: (prompt: string, files: FileItem[], webSearchEnabled: boolean) => Promise<void>;
+  onSubmit: (prompt: string, files: FileContentItem[], webSearchEnabled: boolean) => Promise<void>;
   onUpload?: (detail: Record<string, unknown>) => void;
 }
 
-// Mock dependencies - these would need to be implemented or imported
-const WEBUI_BASE_URL = "";
-
 const PASTED_TEXT_CHARACTER_LIMIT = 50000;
-
-const uploadFile = async (token: string, file: File) => {
-  const data = new FormData();
-  data.append("file", file);
-  let error = null;
-
-  const res = await fetch(`${TEMP_API_BASE_URL}/api/v1/files/`, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      authorization: `Bearer ${token}`,
-    },
-    body: data,
-  })
-    .then(async (res) => {
-      if (!res.ok) throw await res.json();
-      return res.json();
-    })
-    .catch((err) => {
-      error = err.detail;
-      console.log(err);
-      return null;
-    });
-
-  if (error) {
-    throw error;
-  }
-
-  return res;
-};
-
-const deleteFileById = async (fileId: string) => {
-  // Mock implementation
-  console.log("Deleting file:", fileId);
-};
-
-const compressImage = async (imageUrl: string) => {
-  // Mock implementation - would implement actual compression
-  return imageUrl;
-};
 
 const MessageInput: React.FC<MessageInputProps> = ({
   messages,
@@ -111,7 +70,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [dragged, setDragged] = useState(false);
   const [showTools, setShowTools] = useState(false);
   const [prompt, setPrompt] = useState(initialPrompt);
-  const [files, setFiles] = useState<FileItem[]>(initialFiles);
+  const [files, setFiles] = useState<FileContentItem[]>(initialFiles);
   const [selectedToolIds, setSelectedToolIds] = useState(initialSelectedToolIds);
   const [imageGenerationEnabled, setImageGenerationEnabled] = useState(initialImageGenerationEnabled);
   const [webSearchEnabled, setWebSearchEnabled] = useState(initialWebSearchEnabled);
@@ -133,116 +92,63 @@ const MessageInput: React.FC<MessageInputProps> = ({
     });
   }, [prompt, files, selectedToolIds, imageGenerationEnabled, webSearchEnabled, onChange]);
 
-  const uploadFileHandler = useCallback(async (file: File, fullContext: boolean = false) => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      toast.error("No token found");
-      return null;
-    }
-    const tempItemId = uuidv4();
-    const fileItem: FileItem = {
-      type: "file",
-      file: {
-        id: tempItemId,
-        meta: { collection_name: "uploads" },
-        collection_name: "uploads",
-      },
-      id: "",
-      url: "",
-      name: file.name,
-      collection_name: "",
-      status: "uploading",
-      size: file.size,
-      error: "",
-      itemId: tempItemId,
-      ...(fullContext ? { context: "full" } : {}),
-    };
-
-    if (fileItem.size === 0) {
-      toast.error("You cannot upload an empty file.");
-      return null;
-    }
-
-    setFiles((prev) => [...prev, fileItem]);
-
+  const uploadFileHandler = async (file: File): Promise<FileContentItem | undefined> => {
     try {
-      const uploadedFile = await uploadFile(token, file);
+      const imageTypes = ["image/gif", "image/webp", "image/jpeg", "image/png", "image/avif"];
+      const maxFileSize = 10 * 1024 * 1024; // 10MB
 
-      if (uploadedFile) {
-        if (uploadedFile.error) {
-          toast.error(uploadedFile.error);
-        }
-
-        setFiles((prev) =>
-          prev.map((item) =>
-            item.itemId === tempItemId
-              ? ({
-                  ...item,
-                  status: "uploaded" as const,
-                  file: uploadedFile,
-                  id: uploadedFile.id,
-                  collection_name: uploadedFile?.meta?.collection_name || uploadedFile?.collection_name || "",
-                  url: `/api/v1/files/${uploadedFile.id}`,
-                } as FileItem)
-              : item
-          )
-        );
-      } else {
-        setFiles((prev) => prev.filter((item) => item.itemId !== tempItemId));
+      if (file.size > maxFileSize) {
+        toast.error(`File size should not exceed 10 MB.`);
+        return;
       }
-    } catch (e) {
-      toast.error(`Upload failed: ${e}`);
-      setFiles((prev) => prev.filter((item) => item.itemId !== tempItemId));
-    }
-  }, []);
 
-  const inputFilesHandler = useCallback(
-    async (inputFiles: File[]) => {
-      inputFiles.forEach(async (file) => {
-        const maxFileSize = 10 * 1024 * 1024; // 10MB in bytes
-        if (file.size > maxFileSize) {
-          toast.error(`File size should not exceed 10 MB.`);
-          return;
-        }
-
-        if (["image/gif", "image/webp", "image/jpeg", "image/png", "image/avif"].includes(file.type)) {
-          if (visionCapableModels.length === 0) {
-            toast.error("Selected model(s) do not support image inputs");
-            return;
-          }
-
+      if (imageTypes.includes(file.type)) {
+        const imageUrl = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = async (event) => {
-            let imageUrl = event.target?.result as string;
-
-            // Use settings from store for image compression
-            if (settings.imageCompression) {
-              const width = settings.imageCompressionSize?.width;
-              const height = settings.imageCompressionSize?.height;
-
-              if (width || height) {
-                imageUrl = await compressImage(imageUrl);
-              }
-            }
-
-            setFiles((prev) => [
-              ...prev,
-              {
-                type: "image",
-                url: imageUrl,
-                name: file.name,
-              },
-            ]);
-          };
+          reader.onload = (event) => resolve(event.target?.result as string);
+          reader.onerror = reject;
           reader.readAsDataURL(file);
-        } else {
-          await uploadFileHandler(file);
+        });
+
+        let finalImageUrl = imageUrl;
+        if (settings.imageCompression) {
+          const width = settings.imageCompressionSize?.width;
+          const height = settings.imageCompressionSize?.height;
+          if (width || height) {
+            finalImageUrl = await compressImage(imageUrl, width, height);
+          }
         }
-      });
-    },
-    [settings.imageCompression, settings.imageCompressionSize, visionCapableModels.length, uploadFileHandler]
-  );
+
+        const newFile: FileContentItem = {
+          type: "input_image",
+          id: uuidv4(),
+          name: file.name,
+          image_url: finalImageUrl,
+        };
+
+        return newFile;
+      }
+
+      const data = await chatClient.uploadFile(file);
+
+      const newFile: FileContentItem = file.type.startsWith("audio/")
+        ? { type: "input_audio", id: data.id, name: data.filename }
+        : { type: "input_file", id: data.id, name: data.filename };
+
+      return newFile;
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      return undefined;
+    }
+  };
+
+  const inputFilesHandler = async (inputFiles: File[]) => {
+    for (const file of inputFiles) {
+      const newFile = await uploadFileHandler(file);
+      if (!newFile) continue;
+      setFiles((prev) => [...prev, newFile]);
+    }
+  };
 
   useEffect(() => {
     setLoaded(true);
@@ -368,18 +274,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         if (item.type.indexOf("image") !== -1) {
           const blob = item.getAsFile();
           if (blob) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              setFiles((prev) => [
-                ...prev,
-                {
-                  type: "image",
-                  url: e.target?.result as string,
-                  name: "pasted-image.png",
-                },
-              ]);
-            };
-            reader.readAsDataURL(blob);
+            await uploadFileHandler(blob);
           }
         } else if (item.type === "text/plain") {
           if (settings.largeTextAsFile ?? false) {
@@ -390,7 +285,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
               const file = new File([blob], `Pasted_Text_${Date.now()}.txt`, {
                 type: "text/plain",
               });
-              await uploadFileHandler(file, true);
+              await uploadFileHandler(file);
             }
           }
         }
@@ -398,14 +293,19 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
-  const removeFile = async (fileIdx: number) => {
-    const file = files[fileIdx];
-    if (file.type !== "collection" && !file?.collection) {
-      if (file.id) {
-        await deleteFileById(file.id);
-      }
+  async function deleteFileById(fileId: string): Promise<boolean> {
+    try {
+      await chatClient.deleteFile(fileId);
+      return true;
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      return false;
     }
-    setFiles((prev) => prev.filter((_, idx) => idx !== fileIdx));
+  }
+
+  const removeFile = async (fileId: string) => {
+    deleteFileById(fileId);
+    setFiles((prev) => prev.filter((file) => file.id !== fileId));
   };
 
   const setAtSelectedModel = () => {
@@ -455,12 +355,15 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 <div className="absolute right-0 bottom-0 left-0 z-10 flex w-full flex-col bg-gradient-to-t from-white px-3 pt-1.5 pb-0.5 text-left dark:from-gray-900">
                   {atSelectedModel !== undefined && (
                     <div className="flex w-full items-center justify-between">
-                      <div className="flex items-center gap-2 pl-[1px] text-sm dark:text-gray-500">
+                      <div className="flex items-center gap-2 pl-px text-sm dark:text-gray-500">
                         <img
                           crossOrigin="anonymous"
                           alt="model profile"
                           className="size-3.5 max-w-[28px] rounded-full object-cover"
-                          src={atSelectedModel?.info?.meta?.profile_image_url ?? `${WEBUI_BASE_URL}/static/favicon.png`}
+                          src={
+                            atSelectedModel?.info?.meta?.profile_image_url ??
+                            `${window.location.pathname}/static/favicon.png`
+                          }
                         />
                         <div className="translate-y-[0.5px]">
                           Talking to <span className="font-medium">{atSelectedModel.name}</span>
@@ -488,7 +391,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         <div
           className={cn(
             transparentBackground ? "bg-transparent" : "bg-gray-900 dark:bg-gray-900",
-            "flex flex-row items-center pb-[1rem] md:pl-2.5"
+            "flex flex-row items-center pb-4 md:pl-2.5"
           )}
         >
           {!isMobile && !isLeftSidebarOpen && (
@@ -539,12 +442,12 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 >
                   {files.length > 0 && (
                     <div className="-mb-1 mx-2 mt-2.5 flex flex-wrap items-center gap-2">
-                      {files.map((file, fileIdx) => (
-                        <div key={fileIdx}>
-                          {file.type === "image" ? (
+                      {files.map((file) => (
+                        <div key={file.id}>
+                          {file.type === "input_image" ? (
                             <div className="group relative">
                               <div className="relative flex items-center">
-                                <img src={file.url} alt="input" className="size-14 rounded-xl object-cover" />
+                                <img src={file.image_url} alt="input" className="size-14 rounded-xl object-cover" />
                                 {(atSelectedModel
                                   ? visionCapableModels.length === 0
                                   : selectedModels.length !== visionCapableModels.length) && (
@@ -568,7 +471,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                                 <button
                                   className="invisible rounded-full border border-white bg-white text-black transition group-hover:visible"
                                   type="button"
-                                  onClick={() => removeFile(fileIdx)}
+                                  onClick={() => removeFile(file.id)}
                                 >
                                   <svg
                                     xmlns="http://www.w3.org/2000/svg"
@@ -591,12 +494,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
                                     clipRule="evenodd"
                                   />
                                 </svg>
-                                <span className="text-sm">{file.name}</span>
-                                {file.status === "uploading" && (
-                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
-                                )}
+                                <span className="text-sm">{file.type}</span>
                               </div>
-                              <button onClick={() => removeFile(fileIdx)} className="text-gray-500 hover:text-red-500">
+                              <button onClick={() => removeFile(file.id)} className="text-gray-500 hover:text-red-500">
                                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                   <path
                                     fillRule="evenodd"
