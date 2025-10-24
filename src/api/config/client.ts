@@ -13,7 +13,35 @@ class ConfigClient extends ApiClient {
   }
 
   async getConfig(): Promise<Config> {
-    return this.get<Config>("/config");
+    return {
+      status: true,
+      name: "Near AI",
+      version: "1.0.0",
+      default_locale: "en",
+      oauth: {
+        providers: {
+          google: false,
+          microsoft: false,
+          github: false,
+          oidc: false,
+        },
+      },
+      features: {
+        auth: false,
+        auth_trusted_header: false,
+        enable_ldap: false,
+        enable_api_key: false,
+        enable_signup: false,
+        enable_login_form: false,
+        enable_websocket: false,
+      },
+      onboarding: false,
+    };
+    // try {
+    //   return await this.get<Config>("/config");
+    // } catch (error) {
+    //   console.error(error);
+    // }
   }
 }
 

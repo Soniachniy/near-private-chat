@@ -1,7 +1,9 @@
-import { useState } from "react";
+// import { useState } from "react";
+
+import type { ResponseInputFile } from "openai/resources/responses/responses.mjs";
+import { useFile } from "@/api/chat/queries/useFiles";
 import { formatFileSize } from "@/lib/index";
 import { decodeString } from "@/lib/time";
-import type { FileItem } from "@/types";
 import Spinner from "./common/Spinner";
 import { Tooltip } from "./ui/tooltip";
 
@@ -12,16 +14,18 @@ export default function FileItemComponent({
   dismissible = false,
   onDismiss = () => {},
 }: {
-  file: FileItem;
+  file: ResponseInputFile;
   smallView?: boolean;
   loading?: boolean;
   dismissible?: boolean;
   onDismiss?: () => void;
 }) {
-  const [showModal, setShowModal] = useState(false);
+  // const [showModal, setShowModal] = useState(false);
+  const { data: fileData } = useFile(file?.file_id ?? undefined);
+  console.log("fileData", fileData);
 
   const renderContent = () => {
-    if (file.type === "file") {
+    if (file.type === "input_file" || file.type === "output_file") {
       return "File";
     } else if (file.type === "doc") {
       return "Document";
@@ -38,19 +42,19 @@ export default function FileItemComponent({
         smallView ? "rounded-xl" : "rounded-2xl"
       } text-left`}
       type="button"
-      onClick={async () => {
-        if (file?.data?.content) {
-          setShowModal(!showModal);
-        } else {
-          if (file.url) {
-            if (file.type === "file") {
-              window.open(`${file.url}/content`, "_blank")?.focus();
-            } else {
-              window.open(`${file.url}`, "_blank")?.focus();
-            }
-          }
-        }
-      }}
+      // onClick={async () => {
+      //   if (fileData?.content) {
+      //     setShowModal(!showModal);
+      //   } else {
+      //     if (file.url) {
+      //       if (file.type === "file") {
+      //         window.open(`${file.url}/content`, "_blank")?.focus();
+      //       } else {
+      //         window.open(`${file.url}`, "_blank")?.focus();
+      //       }
+      //     }
+      //   }
+      // }}
     >
       {!smallView && (
         <div className="rounded-xl bg-black/20 p-3 text-white dark:bg-white/10">
@@ -71,15 +75,17 @@ export default function FileItemComponent({
 
       {!smallView ? (
         <div className="-space-y-0.5 flex w-full flex-col justify-center px-2.5">
-          <div className="mb-1 line-clamp-1 font-medium text-sm dark:text-gray-100">{decodeString(file.name)}</div>
+          <div className="mb-1 line-clamp-1 font-medium text-sm dark:text-gray-100">
+            {decodeString(fileData?.filename ?? "")}
+          </div>
 
           <div className="line-clamp-1 flex justify-between text-gray-500 text-xs">
             {renderContent()}
-            {file.size && <span className="capitalize">{formatFileSize(file.size)}</span>}
+            {fileData?.bytes && <span className="capitalize">{formatFileSize(fileData.bytes)}</span>}
           </div>
         </div>
       ) : (
-        <Tooltip aria-label={decodeString(file.name)}>
+        <Tooltip aria-label={decodeString(fileData?.filename ?? "")}>
           <div className="-space-y-0.5 flex w-full flex-col justify-center px-2.5">
             <div className="flex items-center justify-between text-sm dark:text-gray-100">
               {loading && (
@@ -87,8 +93,8 @@ export default function FileItemComponent({
                   <Spinner className="size-4" />
                 </div>
               )}
-              <div className="line-clamp-1 flex-1 font-medium">{decodeString(file.name)}</div>
-              <div className="shrink-0 text-gray-500 text-xs capitalize">{formatFileSize(file.size)}</div>
+              <div className="line-clamp-1 flex-1 font-medium">{decodeString(fileData?.filename ?? "")}</div>
+              <div className="shrink-0 text-gray-500 text-xs capitalize">{formatFileSize(fileData?.bytes ?? 0)}</div>
             </div>
           </div>
         </Tooltip>

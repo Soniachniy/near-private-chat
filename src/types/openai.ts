@@ -1,4 +1,5 @@
 import type { Message as MessageOpenAI } from "openai/resources/conversations/conversations";
+import type { ResponseInputFile } from "openai/resources/responses/responses.mjs";
 
 export type FileContentItem =
   | { type: "input_file" | "input_audio"; id: string; name: string }
@@ -39,6 +40,10 @@ export const extractMessageContent = (
 
 export const extractCitations = (message: MessageOpenAI) => {
   return message.content.filter((content) => content.type === "output_text").flatMap((content) => content.annotations);
+};
+
+export const extractFiles = (message: MessageOpenAI, type: "input_file" | "output_file" = "input_file") => {
+  return message.content.filter((content) => content.type === type) as ResponseInputFile[];
 };
 
 export const generateContentFileDataForOpenAI = (file: FileContentItem) => {

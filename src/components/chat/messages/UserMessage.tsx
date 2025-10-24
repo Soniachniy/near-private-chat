@@ -2,9 +2,10 @@ import type { Message as MessageOpenAI } from "openai/resources/conversations/co
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import FileItem from "@/components/FileItem";
 // import FileItem from "@/components/FileItem";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { extractMessageContent } from "@/types/openai";
+import { extractFiles, extractMessageContent } from "@/types/openai";
 
 interface UserMessageProps {
   message: MessageOpenAI;
@@ -21,7 +22,7 @@ const UserMessage: React.FC<UserMessageProps> = ({ message, readOnly, editMessag
   const [edit, setEdit] = useState(false);
   const messageEditTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const messageContent = extractMessageContent(message);
-
+  const messageFiles = extractFiles(message);
   const [editedContent, setEditedContent] = useState(messageContent || "");
 
   useEffect(() => {
@@ -82,19 +83,15 @@ const UserMessage: React.FC<UserMessageProps> = ({ message, readOnly, editMessag
     <div className="user-message group flex w-full" dir={settings.chatDirection || "ltr"} id={`message-${message.id}`}>
       <div className="w-0 max-w-full flex-auto pl-1">
         <div className={`chat-${message.role} markdown-prose w-full min-w-full`}>
-          {/* {message.files && message.files.length > 0 && (
+          {messageFiles && messageFiles.length > 0 && (
             <div className="mt-2.5 mb-1 flex w-full flex-col flex-wrap justify-end gap-1 overflow-x-auto">
-              {message.files.map((file) => (
-                <div key={file.id} className={"self-end"}>
-                  {file.type === "image" ? (
-                    <img src={file.url} alt={file.name} className="max-h-96 rounded-lg" />
-                  ) : (
-                    <FileItem file={file} />
-                  )}
+              {messageFiles.map((file) => (
+                <div key={file.file_id} className={"self-end"}>
+                  <FileItem file={file} />
                 </div>
               ))}
             </div>
-          )} */}
+          )}
 
           {messageContent !== "" && (
             <>

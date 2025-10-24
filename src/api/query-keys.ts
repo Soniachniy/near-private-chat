@@ -49,6 +49,7 @@ export const queryKeys = {
     pinnedStatus: (id: string) => [CHAT_KEY, "pinnedStatus", id],
     tags: (id: string) => [CHAT_KEY, "tags", id],
     files: [CHAT_KEY, "files"],
+    file: (id: string) => [CHAT_KEY, "file", id],
   },
 
   users: {

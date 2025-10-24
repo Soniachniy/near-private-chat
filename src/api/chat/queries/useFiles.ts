@@ -12,3 +12,10 @@ export const useFiles = (options?: UseFilesOptions) => {
     ...options,
   });
 };
+
+export const useFile = (id: string | undefined) => {
+  return useQuery({
+    queryKey: queryKeys.chat.file(id ?? ""),
+    queryFn: () => chatClient.getFile(id ?? ""),
+  });
+};
