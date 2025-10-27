@@ -78,3 +78,8 @@ export const formatFileSize = (size?: number) => {
   }
   return `${size.toFixed(1)} ${units[unitIndex]}`;
 };
+
+export const getLineCount = (text: string) => {
+  console.log(typeof text);
+  return text ? text.split("\n").length : 0;
+};

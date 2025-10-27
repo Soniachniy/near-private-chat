@@ -314,13 +314,25 @@ class ChatClient extends ApiClient {
     return this.get(`/files/${id}`, { apiVersion: "v2" });
   }
 
+  async getFileContent(id: string | undefined): Promise<any> {
+    if (!id) {
+      throw new Error("File ID is required");
+    }
+
+    const response = await this.get(`/files/${id}/content`, {
+      apiVersion: "v2",
+    });
+    console.log("response", response);
+    return response;
+  }
+
   //https://platform.openai.com/docs/api-reference/files/create?lang=node.js
   async uploadFile(file: File) {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("purpose", "user_data");
+    formData.append("purpose", "vision");
     formData.append("expires_after[anchor]", "created_at");
-    formData.append("expires_after[seconds]", "3600");
+    formData.append("expires_after[seconds]", "36000");
 
     return this.post<FileOpenAIResponse>("/files", formData, {
       apiVersion: "v2",

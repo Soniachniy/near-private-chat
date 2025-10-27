@@ -50,6 +50,7 @@ export const queryKeys = {
     tags: (id: string) => [CHAT_KEY, "tags", id],
     files: [CHAT_KEY, "files"],
     file: (id: string) => [CHAT_KEY, "file", id],
+    fileContent: (id: string) => [CHAT_KEY, "fileContent", id],
   },
 
   users: {

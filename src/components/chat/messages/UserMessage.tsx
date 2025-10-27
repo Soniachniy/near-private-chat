@@ -2,7 +2,8 @@ import type { Message as MessageOpenAI } from "openai/resources/conversations/co
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import FileItem from "@/components/FileItem";
+import FileDialog from "@/components/common/dialogs/FileDialog";
+// import FileItem from "@/components/FileItem";
 // import FileItem from "@/components/FileItem";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { extractFiles, extractMessageContent } from "@/types/openai";
@@ -87,7 +88,7 @@ const UserMessage: React.FC<UserMessageProps> = ({ message, readOnly, editMessag
             <div className="mt-2.5 mb-1 flex w-full flex-col flex-wrap justify-end gap-1 overflow-x-auto">
               {messageFiles.map((file) => (
                 <div key={file.file_id} className={"self-end"}>
-                  <FileItem file={file} />
+                  <FileDialog file={file} />
                 </div>
               ))}
             </div>
