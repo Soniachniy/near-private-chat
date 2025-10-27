@@ -3,7 +3,14 @@ import type {
   Message as MessageOpenAI,
   Conversation as OpenAIConversation,
 } from "openai/resources/conversations/conversations";
-import type { Tool } from "openai/resources/responses/responses.mjs";
+
+import type {
+  ResponseFunctionWebSearch,
+  ResponseInputMessageItem,
+  ResponseOutputMessage,
+  ResponseReasoningItem,
+  Tool,
+} from "openai/resources/responses/responses.mjs";
 
 export type OAuth2Provider = "google" | "github" | "microsoft" | "oidc";
 
@@ -44,7 +51,7 @@ export interface ConversationItemsResponse {
 
 export interface Conversation extends OpenAIConversation {
   // ConversationItemsPage properties
-  data?: MessageOpenAI[];
+  data?: (ResponseInputMessageItem | ResponseFunctionWebSearch | ResponseReasoningItem | ResponseOutputMessage)[];
   has_more?: boolean;
   last_id?: string;
 
@@ -437,4 +444,5 @@ export interface StartStreamProps {
   conversation: string;
   queryClient: QueryClient;
   tools?: Tool[];
+  include?: string[];
 }

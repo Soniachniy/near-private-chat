@@ -296,11 +296,15 @@ class ChatClient extends ApiClient {
     return this.post<Chat>(`/chats/archive/all`);
   }
 
-  async startStream({ model, role, content, conversation, queryClient }: StartStreamProps) {
+  async startStream({ model, role, content, conversation, queryClient, tools, include }: StartStreamProps) {
     const input = Array.isArray(content)
       ? [{ role, content }]
       : [{ role, content: [{ type: "input_text", text: content }] }];
-    return this.stream("/responses", { model, input, conversation, stream: true }, { apiVersion: "v2", queryClient });
+    return this.stream(
+      "/responses",
+      { model, input, conversation, stream: true, tools, include },
+      { apiVersion: "v2", queryClient }
+    );
   }
 
   async getFiles() {

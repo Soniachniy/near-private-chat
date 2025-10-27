@@ -1,4 +1,4 @@
-import type { Message as MessageOpenAI } from "openai/resources/conversations/conversations";
+import type { ResponseInputMessageItem } from "openai/resources/responses/responses.mjs";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -9,7 +9,7 @@ import { useSettingsStore } from "@/stores/useSettingsStore";
 import { extractFiles, extractMessageContent } from "@/types/openai";
 
 interface UserMessageProps {
-  message: MessageOpenAI;
+  message: ResponseInputMessageItem;
   isFirstMessage: boolean;
   readOnly: boolean;
   editMessage: (messageId: string, content: string) => void;

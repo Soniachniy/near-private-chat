@@ -48,7 +48,10 @@ export class ApiClient {
 
   protected async request<T>(
     endpoint: string,
-    options: RequestInit & { apiVersion?: "v1" | "v2"; withoutHeaders?: boolean } = {}
+    options: RequestInit & {
+      apiVersion?: "v1" | "v2";
+      withoutHeaders?: boolean;
+    } = {}
   ): Promise<T> {
     try {
       const headers: Record<string, string> = options.withoutHeaders
@@ -97,7 +100,11 @@ export class ApiClient {
   protected async post<T>(
     endpoint: string,
     body?: unknown,
-    options: RequestInit & { apiVersion?: "v1" | "v2"; stream?: boolean; withoutHeaders?: boolean } = {}
+    options: RequestInit & {
+      apiVersion?: "v1" | "v2";
+      stream?: boolean;
+      withoutHeaders?: boolean;
+    } = {}
   ): Promise<T> {
     const requestOptions: RequestInit = {
       ...options,
@@ -179,17 +186,19 @@ export class ApiClient {
               (old: Conversation) => {
                 const newData = { ...old };
                 const currentConversationData = newData.data?.find((item) => item.id === data.item_id);
-                if (currentConversationData && !currentConversationData?.content?.length) {
-                  currentConversationData.content = [
-                    {
-                      type: "output_text",
-                      text: data.delta,
-                      annotations: [],
-                    },
-                  ];
-                } else {
-                  if (currentConversationData!.content[0].type === "output_text") {
-                    currentConversationData!.content[0].text += data.delta;
+                if (currentConversationData?.type === "message") {
+                  if (currentConversationData && !currentConversationData?.content?.length) {
+                    currentConversationData.content = [
+                      {
+                        type: "output_text",
+                        text: data.delta,
+                        annotations: [],
+                      },
+                    ];
+                  } else {
+                    if (currentConversationData!.content[0].type === "output_text") {
+                      currentConversationData!.content[0].text += data.delta;
+                    }
                   }
                 }
                 return {
@@ -210,8 +219,13 @@ export class ApiClient {
                 const newData: Conversation = { ...old };
                 const currentConversationData = newData.data?.find((item) => item.id === data.item.id);
                 if (data.item.type === "message" && currentConversationData) {
-                  currentConversationData.content = data.item.content;
                   currentConversationData.status = data.item.status;
+                }
+                if (currentConversationData?.type === "message" && data.item.type === "message") {
+                  currentConversationData.content = data.item.content;
+                }
+                if (data.item.type === "reasoning" || data.item.type === "web_search_call") {
+                  newData.data = newData.data?.filter((item) => item.id === data.item.id);
                 }
 
                 return {
@@ -226,14 +240,26 @@ export class ApiClient {
             options.queryClient?.setQueryData(
               ["conversation", (body as { conversation?: string })?.conversation || ""],
               (old: Conversation) => {
-                const dataObject =
-                  data.item.type === "reasoning"
-                    ? {
+                if (data.item.type === "reasoning" || data.item.type === "web_search_call") {
+                  const summary = data.item.type === "reasoning" ? data.item.summary : [];
+                  return {
+                    ...old,
+                    last_id: data.item.id,
+                    data: [
+                      {
                         id: data.item.id,
                         type: "reasoning",
-                        summary: data.item.summary,
-                      }
-                    : {
+                        summary,
+                      },
+                      ...(old.data ?? []),
+                    ],
+                    lastUpdatedAt: Date.now(),
+                  };
+                } else if (data.item.type === "message") {
+                  return {
+                    ...old,
+                    data: [
+                      {
                         id: data.item.id,
                         type: "message",
                         role: "assistant",
@@ -244,12 +270,12 @@ export class ApiClient {
                             annotations: [],
                           },
                         ],
-                      };
-                return {
-                  ...old,
-                  data: [dataObject, ...(old?.data ?? [])],
-                  last_id: data.item.id,
-                };
+                      },
+                      ...(old?.data ?? []),
+                    ],
+                    last_id: data.item.id,
+                  };
+                }
               }
             );
             break;

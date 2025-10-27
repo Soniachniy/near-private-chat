@@ -1,5 +1,5 @@
 import { marked } from "marked";
-import type { Message as MessageOpenAI } from "openai/resources/conversations/conversations";
+import type { ResponseOutputMessage } from "openai/resources/responses/responses.mjs";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -16,16 +16,16 @@ import Citations from "./Citations";
 import MarkdownTokens from "./MarkdownTokens";
 
 interface ResponseMessageProps {
-  message: MessageOpenAI;
+  message: ResponseOutputMessage;
   siblings: string[];
   isLastMessage: boolean;
   readOnly: boolean;
   webSearchEnabled: boolean;
   saveMessage: (messageId: string, content: string) => void;
   deleteMessage: (messageId: string) => void;
-  regenerateResponse: (message: MessageOpenAI) => Promise<void>;
-  showPreviousMessage: (message: MessageOpenAI) => void;
-  showNextMessage: (message: MessageOpenAI) => void;
+  regenerateResponse: (message: ResponseOutputMessage) => Promise<void>;
+  showPreviousMessage: (message: ResponseOutputMessage) => void;
+  showNextMessage: (message: ResponseOutputMessage) => void;
 }
 
 const ResponseMessage: React.FC<ResponseMessageProps> = ({

@@ -1,5 +1,8 @@
-import type { Message as MessageOpenAI } from "openai/resources/conversations/conversations";
-import type { ResponseInputFile } from "openai/resources/responses/responses.mjs";
+import type {
+  ResponseInputFile,
+  ResponseInputMessageItem,
+  ResponseOutputMessage,
+} from "openai/resources/responses/responses.mjs";
 
 export type FileContentItem =
   | { type: "input_file" | "input_audio"; id: string; name: string }
@@ -32,17 +35,17 @@ export type FilesOpenaiResponse = {
 };
 
 export const extractMessageContent = (
-  message: MessageOpenAI,
+  message: ResponseInputMessageItem | ResponseOutputMessage,
   type: "input_text" | "output_text" | "reasoning_text" = "input_text"
 ) => {
   return message.content.map((content) => (content.type === type ? content.text : "")).join("");
 };
 
-export const extractCitations = (message: MessageOpenAI) => {
+export const extractCitations = (message: ResponseOutputMessage) => {
   return message.content.filter((content) => content.type === "output_text").flatMap((content) => content.annotations);
 };
 
-export const extractFiles = (message: MessageOpenAI, type: "input_file" | "output_file" = "input_file") => {
+export const extractFiles = (message: ResponseInputMessageItem, type: "input_file" | "output_file" = "input_file") => {
   return message.content.filter((content) => content.type === type) as ResponseInputFile[];
 };
 

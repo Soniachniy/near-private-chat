@@ -40,6 +40,7 @@ interface MessageInputProps {
   placeholder?: string;
   onSubmit: (prompt: string, files: FileContentItem[], webSearchEnabled: boolean) => Promise<void>;
   onUpload?: (detail: Record<string, unknown>) => void;
+  showUserProfile?: boolean;
 }
 
 const PASTED_TEXT_CHARACTER_LIMIT = 50000;
@@ -63,6 +64,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   webSearchEnabled: initialWebSearchEnabled = false,
   placeholder = "",
   onSubmit,
+  showUserProfile = true,
 }) => {
   const { user } = useUserStore();
   const { settings } = useSettingsStore();
@@ -397,7 +399,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             "flex flex-row items-center pb-4 md:pl-2.5"
           )}
         >
-          {!isMobile && !isLeftSidebarOpen && (
+          {!isMobile && !isLeftSidebarOpen && showUserProfile && (
             <div>
               <button
                 className="flex select-none rounded-xl p-1.5 transition hover:bg-gray-50 dark:hover:bg-gray-850"
@@ -524,7 +526,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                         <textarea
                           ref={chatInputRef}
                           id="chat-input"
-                          className="min-h-[20px] w-full resize-none border-none bg-transparent outline-none"
+                          className="min-h-[20px] w-full resize-none border-none bg-transparent text-base outline-none"
                           placeholder={placeholder || "Send a Message"}
                           value={prompt}
                           onChange={(e) => setPrompt(e.target.value)}

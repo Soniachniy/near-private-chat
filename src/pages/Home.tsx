@@ -39,7 +39,7 @@ const Home: React.FC = () => {
   const [opacity, setOpacity] = useState<number>(0);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
+  const [inputValue, setInputValue] = useState("");
   const { updateMessage, currentChat, selectedModels } = useChatStore();
 
   const { createConversation, updateConversation } = useConversation();
@@ -96,6 +96,7 @@ const Home: React.FC = () => {
               content: contentItems,
               queryClient: queryClient,
               tools: webSearchEnabled ? [{ type: "web_search" }] : [],
+              include: webSearchEnabled ? ["web_search_call.action.sources"] : [],
             });
 
             await generateChatTitle.mutateAsync(
@@ -141,6 +142,7 @@ const Home: React.FC = () => {
         content: contentItems,
         queryClient: queryClient,
         tools: webSearchEnabled ? [{ type: "web_search" }] : [],
+        include: webSearchEnabled ? ["web_search_call.action.sources"] : [],
       });
     }
   };
@@ -249,14 +251,9 @@ const Home: React.FC = () => {
     return (
       <>
         <Navbar />
-        <ChatPlaceholder
-          submitVoice={async (voice) => {
-            await handleSendMessage(voice, [], false);
-          }}
-          submitPrompt={async (prompt) => {
-            await handleSendMessage(prompt, [], false);
-          }}
-        />
+        <ChatPlaceholder inputValue={inputValue} setInputValue={setInputValue}>
+          <MessageInput messages={currentChat?.chat.messages} onSubmit={handleSendMessage} showUserProfile={false} />
+        </ChatPlaceholder>
       </>
     );
   }
@@ -271,9 +268,13 @@ const Home: React.FC = () => {
         style={{ opacity }}
       >
         {currentMessages.map((message, idx) => {
-          if (message.type !== "message") {
-            return null;
+          if (
+            (message.type === "reasoning" || message.type === "web_search_call") &&
+            conversationData?.last_id === message.id
+          ) {
+            return <MessageSkeleton key={message.id} />;
           }
+          if (message.type !== "message") return null;
 
           if (message.type === "message" && message.role === "user") {
             console.log("user message", message);
@@ -288,8 +289,8 @@ const Home: React.FC = () => {
             );
           } else if (message.content.join("") === "") {
             // } else if (message.content.join("") === "" && !message.error) {
-            return <MessageSkeleton key={message.id} />;
-          } else {
+            return <MessageSkeleton key={message.content.join("")} />;
+          } else if (message.type === "message" && message.role === "assistant") {
             // const hasMultipleModels = false;
 
             // if (hasMultipleModels) {
@@ -323,6 +324,8 @@ const Home: React.FC = () => {
               />
             );
             // }
+          } else {
+            return null;
           }
         })}
       </div>

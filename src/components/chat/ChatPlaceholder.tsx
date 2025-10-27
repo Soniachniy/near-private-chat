@@ -3,7 +3,6 @@ import Fuse from "fuse.js";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import NearAIIcon from "@/assets/icons/near-icon-green.svg?react";
-import SendMessageIcon from "@/assets/icons/send-message.svg?react";
 
 import { allPrompts } from "@/pages/welcome/data";
 
@@ -13,29 +12,29 @@ interface Prompt {
 }
 
 interface ChatPlaceholderProps {
-  submitPrompt: (value: string) => void;
-  submitVoice: (value: string) => void;
+  inputValue: string;
+  setInputValue: (value: string) => void;
+  children: React.ReactNode;
 }
 
-const ChatPlaceholder: React.FC<ChatPlaceholderProps> = ({ submitPrompt }) => {
-  const [inputValue, setInputValue] = useState("");
+const ChatPlaceholder: React.FC<ChatPlaceholderProps> = ({ inputValue, setInputValue, children }) => {
   const [filteredPrompts, setFilteredPrompts] = useState<Prompt[]>([]);
 
-  const handlePromptClick = (content: string) => {
-    setInputValue(content);
-  };
-  const handleSubmit = (value: string) => {
-    submitPrompt(value);
-    setInputValue("");
-  };
+  // const handlePromptClick = (content: string) => {
+  //   setInputValue(content);
+  // };
+  // const handleSubmit = (value: string) => {
+  //   submitPrompt(value);
+  //   setInputValue("");
+  // };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    const enterPressed = e.key === "Enter" || e.keyCode === 13;
-    if (enterPressed && inputValue) {
-      submitPrompt(inputValue);
-      setInputValue("");
-    }
-  };
+  // const handleKeyDown = (e: React.KeyboardEvent) => {
+  //   const enterPressed = e.key === "Enter" || e.keyCode === 13;
+  //   if (enterPressed && inputValue) {
+  //     submitPrompt(inputValue);
+  //     setInputValue("");
+  //   }
+  // };
 
   const getFilteredPrompts = useCallback(
     (inputValue: string) => {
@@ -76,8 +75,8 @@ const ChatPlaceholder: React.FC<ChatPlaceholderProps> = ({ submitPrompt }) => {
                 Chat with your personal assistant without worrying about leaking private information.
               </p>
             </div>
-
-            <div className="w-full py-3 font-normal text-base md:max-w-3xl">
+            {children}
+            {/* <div className="w-full py-3 font-normal text-base md:max-w-3xl">
               <div className="inset-x-0 mx-auto w-full px-2.5 font-primary dark:bg-gray-900">
                 <div className="app-chat-input relative flex w-full flex-1 flex-col rounded-3xl border border-gray-50 bg-white/90 px-1 shadow-lg transition focus-within:border-gray-100 hover:border-gray-100 dark:border-gray-850 dark:bg-gray-400/5 dark:text-gray-100 hover:dark:border-gray-800 focus-within:dark:border-gray-800">
                   <div className="px-2.5">
@@ -91,7 +90,10 @@ const ChatPlaceholder: React.FC<ChatPlaceholderProps> = ({ submitPrompt }) => {
                         onKeyDown={handleKeyDown}
                       />
                     </div>
-                    <div className="mx-0.5 mt-0.5 mb-2.5 flex max-w-full justify-between" dir="ltr">
+                    <div
+                      className="mx-0.5 mt-0.5 mb-2.5 flex max-w-full justify-between"
+                      dir="ltr"
+                    >
                       <div className="ml-1 flex max-w-[80%] flex-1 items-center self-end" />
 
                       <div className="mr-1 flex shrink-0 space-x-1 self-end">
@@ -114,7 +116,7 @@ const ChatPlaceholder: React.FC<ChatPlaceholderProps> = ({ submitPrompt }) => {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Suggestions */}
             <div className="mx-auto mt-2 w-full max-w-2xl font-primary">
@@ -131,7 +133,7 @@ const ChatPlaceholder: React.FC<ChatPlaceholderProps> = ({ submitPrompt }) => {
                         role="listitem"
                         className="waterfall group flex w-full flex-1 shrink-0 flex-col justify-between rounded-xl bg-transparent px-3 py-2 font-normal text-base transition hover:bg-black/5 dark:hover:bg-white/5"
                         style={{ animationDelay: `${idx * 60}ms` }}
-                        onClick={() => handlePromptClick(prompt.content)}
+                        onClick={() => setInputValue(prompt.content)}
                       >
                         <div className="flex flex-col text-left">
                           {prompt.title && prompt.title[0] !== "" ? (
