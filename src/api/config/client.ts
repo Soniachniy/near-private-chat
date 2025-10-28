@@ -15,7 +15,7 @@ class ConfigClient extends ApiClient {
   async getConfig(): Promise<Config> {
     return {
       status: true,
-      name: "Near AI",
+      name: "NEAR AI Private Chat",
       version: "1.0.0",
       default_locale: "en",
       oauth: {
@@ -27,12 +27,12 @@ class ConfigClient extends ApiClient {
         },
       },
       features: {
-        auth: false,
+        auth: true,
         auth_trusted_header: false,
-        enable_ldap: false,
-        enable_api_key: false,
-        enable_signup: false,
-        enable_login_form: false,
+        enable_ldap: true,
+        enable_api_key: true,
+        enable_signup: true,
+        enable_login_form: true,
         enable_websocket: false,
       },
       onboarding: false,

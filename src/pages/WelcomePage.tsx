@@ -1,14 +1,16 @@
 import type React from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import ChevronDown from "@/assets/icons/chevron-welcome.svg?react";
 import NearAIIcon from "@/assets/icons/near-icon-green.svg?react";
 import ChatPlaceholder from "@/components/chat/ChatPlaceholder";
+import MessageInput from "@/components/chat/MessageInput";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { APP_ROUTES } from "./routes";
 
 const WelcomePage: React.FC = () => {
   const navigate = useNavigate();
-
+  const [inputValue, setInputValue] = useState("");
   const gotoAuth = async () => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -57,7 +59,9 @@ const WelcomePage: React.FC = () => {
         </button>
       </div>
 
-      <ChatPlaceholder submitPrompt={gotoAuth} submitVoice={gotoAuth} />
+      <ChatPlaceholder inputValue={inputValue} setInputValue={setInputValue}>
+        <MessageInput messages={[]} onSubmit={gotoAuth} showUserProfile={false} />
+      </ChatPlaceholder>
 
       <style>{`
 				@keyframes fadeInUp {

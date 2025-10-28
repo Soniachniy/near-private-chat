@@ -67,7 +67,7 @@ const AuthPage: React.FC = () => {
             </div>
           ) : (
             <div className="my-auto w-full pb-10 dark:text-gray-100">
-              <div className="mb-1">
+              <div className="mb-1 flex flex-col items-center justify-center">
                 <p className="font-medium text-2xl">Sign in to {config.name}</p>
 
                 {config.onboarding && (
