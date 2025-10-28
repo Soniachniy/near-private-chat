@@ -30,7 +30,8 @@ interface MessageInputProps {
   selectedModels?: string[];
   history?: History;
   taskIds?: string[] | null;
-  prompt?: string;
+  prompt: string;
+  setPrompt: (prompt: string) => void;
   files?: FileContentItem[];
   toolServers?: Record<string, unknown>[];
   selectedToolIds?: string[];
@@ -57,7 +58,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
   selectedModels = [""],
   history,
   taskIds = null,
-  prompt: initialPrompt = "",
+  prompt,
+  setPrompt,
   files: initialFiles = [],
   toolServers = [],
   selectedToolIds: initialSelectedToolIds = [],
@@ -74,7 +76,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [isComposing, setIsComposing] = useState(false);
   const [dragged, setDragged] = useState(false);
   const [showTools, setShowTools] = useState(false);
-  const [prompt, setPrompt] = useState(initialPrompt);
+
   const [files, setFiles] = useState<FileContentItem[]>(initialFiles);
   const [selectedToolIds, setSelectedToolIds] = useState(initialSelectedToolIds);
   const [imageGenerationEnabled, setImageGenerationEnabled] = useState(initialImageGenerationEnabled);

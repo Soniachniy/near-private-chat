@@ -1,6 +1,7 @@
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { toast } from "sonner";
 import { authClient } from "@/api/auth/client";
 import { useConfig } from "@/api/config/queries";
 import CheckIcon from "@/assets/icons/check-icon.svg?react";
@@ -21,7 +22,7 @@ const AuthPage: React.FC = () => {
   const navigate = useNavigate();
   const checkAgreeTerms = () => {
     if (!agreedTerms) {
-      alert("You must agree to the Terms of Service and Privacy Policy to proceed.");
+      toast.error("You must agree to the Terms of Service and Privacy Policy to proceed.");
       return false;
     }
     return true;

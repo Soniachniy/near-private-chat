@@ -11,6 +11,11 @@ import { APP_ROUTES } from "./routes";
 const WelcomePage: React.FC = () => {
   const navigate = useNavigate();
   const [inputValue, setInputValue] = useState("");
+
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+    localStorage.setItem("welcomePagePrompt", value);
+  };
   const gotoAuth = async () => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -59,8 +64,15 @@ const WelcomePage: React.FC = () => {
         </button>
       </div>
 
-      <ChatPlaceholder inputValue={inputValue} setInputValue={setInputValue}>
-        <MessageInput messages={[]} onSubmit={gotoAuth} showUserProfile={false} fullWidth={false} />
+      <ChatPlaceholder inputValue={inputValue} setInputValue={handleInputChange}>
+        <MessageInput
+          messages={[]}
+          onSubmit={gotoAuth}
+          showUserProfile={false}
+          prompt={inputValue}
+          fullWidth={false}
+          setPrompt={handleInputChange}
+        />
       </ChatPlaceholder>
 
       <style>{`

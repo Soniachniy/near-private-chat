@@ -3,6 +3,7 @@ import type { Message as MessageOpenAI } from "openai/resources/conversations/co
 import type React from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { toast } from "sonner";
 import { useConversation } from "@/api/chat/queries/useConversation";
 import { useGetConversation } from "@/api/chat/queries/useGetConversation";
 import { useResponse } from "@/api/chat/queries/useResponse";
@@ -55,6 +56,10 @@ const Home: React.FC = () => {
   const { generateChatTitle, startStream } = useResponse();
 
   const handleSendMessage = async (content: string, files: FileContentItem[], webSearchEnabled: boolean = false) => {
+    if (selectedModels.length === 0) {
+      toast.error("Please select a model");
+      return;
+    }
     const contentItems = [
       { type: "input_text", text: content },
       ...files.map((file) => generateContentFileDataForOpenAI(file)),
@@ -226,6 +231,11 @@ const Home: React.FC = () => {
   // Reset opacity when chatId changes
   useEffect(() => {
     setOpacity(0);
+    const welcomePagePrompt = localStorage.getItem("welcomePagePrompt");
+    if (welcomePagePrompt) {
+      setInputValue(welcomePagePrompt);
+      localStorage.removeItem("welcomePagePrompt");
+    }
   }, [chatId]);
 
   useLayoutEffect(() => {
@@ -257,6 +267,8 @@ const Home: React.FC = () => {
             onSubmit={handleSendMessage}
             showUserProfile={false}
             fullWidth={false}
+            prompt={inputValue}
+            setPrompt={setInputValue}
           />
         </ChatPlaceholder>
       </>
@@ -335,7 +347,12 @@ const Home: React.FC = () => {
         })}
       </div>
 
-      <MessageInput messages={currentChat?.chat.messages} onSubmit={handleSendMessage} />
+      <MessageInput
+        messages={currentChat?.chat.messages}
+        onSubmit={handleSendMessage}
+        prompt={inputValue}
+        setPrompt={setInputValue}
+      />
     </div>
   );
 };
