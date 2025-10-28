@@ -41,6 +41,7 @@ interface MessageInputProps {
   onSubmit: (prompt: string, files: FileContentItem[], webSearchEnabled: boolean) => Promise<void>;
   onUpload?: (detail: Record<string, unknown>) => void;
   showUserProfile?: boolean;
+  fullWidth?: boolean;
 }
 
 const PASTED_TEXT_CHARACTER_LIMIT = 50000;
@@ -65,6 +66,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   placeholder = "",
   onSubmit,
   showUserProfile = true,
+  fullWidth = true,
 }) => {
   const { user } = useUserStore();
   const { settings } = useSettingsStore();
@@ -331,7 +333,12 @@ const MessageInput: React.FC<MessageInputProps> = ({
         </div>
       )}
 
-      <div className={`w-full flex-row font-primary ${messages?.length === 0 ? "flex-1" : ""}`}>
+      <div
+        className={cn(
+          `flex-row font-primary ${messages?.length === 0 ? "flex-1" : ""}`,
+          fullWidth ? "w-full" : "w-full md:max-w-3xl"
+        )}
+      >
         <div className="inset-x-0 mx-auto flex justify-center bg-transparent">
           <div className={`flex flex-col px-3 ${settings.widescreenMode ? "max-w-full" : "max-w-6xl"} w-full`}>
             <div className="relative">

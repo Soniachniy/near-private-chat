@@ -60,7 +60,7 @@ const WelcomePage: React.FC = () => {
       </div>
 
       <ChatPlaceholder inputValue={inputValue} setInputValue={setInputValue}>
-        <MessageInput messages={[]} onSubmit={gotoAuth} showUserProfile={false} />
+        <MessageInput messages={[]} onSubmit={gotoAuth} showUserProfile={false} fullWidth={false} />
       </ChatPlaceholder>
 
       <style>{`

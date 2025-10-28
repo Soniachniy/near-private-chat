@@ -252,7 +252,12 @@ const Home: React.FC = () => {
       <>
         <Navbar />
         <ChatPlaceholder inputValue={inputValue} setInputValue={setInputValue}>
-          <MessageInput messages={currentChat?.chat.messages} onSubmit={handleSendMessage} showUserProfile={false} />
+          <MessageInput
+            messages={currentChat?.chat.messages}
+            onSubmit={handleSendMessage}
+            showUserProfile={false}
+            fullWidth={false}
+          />
         </ChatPlaceholder>
       </>
     );
