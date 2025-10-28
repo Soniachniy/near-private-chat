@@ -1,8 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type {
-  Message as MessageOpenAI,
-  Conversation as OpenAIConversation,
-} from "openai/resources/conversations/conversations";
+import type { Conversation as OpenAIConversation } from "openai/resources/conversations/conversations";
 
 import type {
   ResponseFunctionWebSearch,
@@ -42,7 +39,7 @@ export interface ConversationInfo {
 }
 
 export interface ConversationItemsResponse {
-  data: MessageOpenAI[];
+  data: (ResponseInputMessageItem | ResponseFunctionWebSearch | ResponseReasoningItem | ResponseOutputMessage)[];
   first_id: string;
   has_more: boolean;
   last_id: string;
