@@ -334,7 +334,7 @@ class ChatClient extends ApiClient {
   async uploadFile(file: File) {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("purpose", "vision");
+    formData.append("purpose", "user_data");
     formData.append("expires_after[anchor]", "created_at");
     formData.append("expires_after[seconds]", "36000");
 
