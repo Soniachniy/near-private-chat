@@ -327,10 +327,27 @@ const MessageInput: React.FC<MessageInputProps> = ({
     <>
       {/* Files Overlay */}
       {dragged && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-lg bg-gray-900 p-8 text-center dark:bg-gray-900">
-            <div className="mb-4 text-4xl">📁</div>
-            <div className="font-medium text-lg">Drop files here to upload</div>
+        <div
+          className={`fixed ${
+            isLeftSidebarOpen ? "left-0 md:left-[260px] md:w-[calc(100%-260px)]" : "left-0"
+          } pointer-events-none fixed top-0 right-0 bottom-0 z-9999 flex h-full w-full touch-none`}
+          id="dropzone"
+          role="region"
+          aria-label="Drag and Drop Container"
+        >
+          <div className="absolute flex h-full w-full justify-center bg-gray-800/40 backdrop-blur-sm">
+            <div className="m-auto flex flex-col justify-center">
+              <div className="max-w-md">
+                <div className="px-3">
+                  <div className="mb-3 text-center text-6xl">📄</div>
+                  <div className="z-50 text-center font-semibold text-xl dark:text-white">Add Files</div>
+
+                  <div className="mt-2 w-full px-2 text-center text-sm dark:text-gray-200">
+                    Drop any files here to add to the conversation
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -535,7 +552,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                         <textarea
                           ref={chatInputRef}
                           id="chat-input"
-                          className="min-h-[20px] w-full resize-none border-none bg-transparent text-base outline-none"
+                          className="field-sizing-content relative h-full min-h-fit w-full min-w-full border-none bg-transparent text-base outline-none"
                           placeholder={placeholder || "Send a Message"}
                           value={prompt}
                           onChange={(e) => setPrompt(e.target.value)}
@@ -543,7 +560,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                           onPaste={handlePaste}
                           onCompositionStart={() => setIsComposing(true)}
                           onCompositionEnd={() => setIsComposing(false)}
-                          rows={1}
+                          // rows={15}
                           style={{ lineHeight: "1.5" }}
                         />
                       </div>

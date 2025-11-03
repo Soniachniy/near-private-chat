@@ -1,39 +1,28 @@
+import Bolt from "@heroicons/react/24/outline/BoltIcon";
 import { useQueryClient } from "@tanstack/react-query";
+import Fuse from "fuse.js";
 import type { Message as MessageOpenAI } from "openai/resources/conversations/conversations";
 import type React from "react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { useConversation } from "@/api/chat/queries/useConversation";
 import { useGetConversation } from "@/api/chat/queries/useGetConversation";
 import { useResponse } from "@/api/chat/queries/useResponse";
-// import { toast } from "sonner";
-// import { v4 as uuidv4 } from "uuid";
-// import { chatClient } from "@/api/chat/client";
-// import {
-//   useChatById,
-//   useCreateChat,
-//   useCreateNewChat,
-// } from "@/api/chat/queries";
-// import { useChatWebSocket } from "@/api/chat/websocket/useChatWebSocket";
-// import { TEMP_API_BASE_URL } from "@/api/constants";
-import ChatPlaceholder from "@/components/chat/ChatPlaceholder";
+
+import NearAIIcon from "@/assets/icons/near-icon-green.svg?react";
+import type { Prompt } from "@/components/chat/ChatPlaceholder";
+
 import MessageInput from "@/components/chat/MessageInput";
 import MessageSkeleton from "@/components/chat/MessageSkeleton";
 import ResponseMessage from "@/components/chat/messages/ResponseMessage";
 import UserMessage from "@/components/chat/messages/UserMessage";
 import Navbar from "@/components/chat/Navbar";
 import LoadingScreen from "@/components/common/LoadingScreen";
+import { allPrompts } from "@/pages/welcome/data";
 import { useChatStore } from "@/stores/useChatStore";
 import type { Conversation } from "@/types";
 import { type FileContentItem, generateContentFileDataForOpenAI } from "@/types/openai";
-
-// interface SendPromptParams {
-//   prompt: string;
-//   chatId?: string;
-//   model?: string;
-//   files?: FileItem[];
-// }
 
 const Home: React.FC = () => {
   const { chatId } = useParams<{ chatId: string }>();
@@ -54,6 +43,32 @@ const Home: React.FC = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { generateChatTitle, startStream } = useResponse();
+  const [filteredPrompts, setFilteredPrompts] = useState<Prompt[]>([]);
+  const getFilteredPrompts = useCallback(
+    (inputValue: string) => {
+      const sortedPrompts = [...(allPrompts ?? [])].sort(() => Math.random() - 0.5);
+      if (inputValue.length > 500) {
+        setFilteredPrompts([]);
+      } else {
+        const fuse = new Fuse(sortedPrompts, {
+          keys: ["content", "title"],
+          threshold: 0.5,
+        });
+
+        const newFilteredPrompts =
+          inputValue.trim() && fuse ? fuse.search(inputValue.trim()).map((result) => result.item) : sortedPrompts;
+
+        if (filteredPrompts.length !== newFilteredPrompts.length) {
+          setFilteredPrompts(newFilteredPrompts);
+        }
+      }
+    },
+    [filteredPrompts]
+  );
+
+  useEffect(() => {
+    getFilteredPrompts(inputValue);
+  }, [inputValue, getFilteredPrompts]);
 
   const handleSendMessage = async (content: string, files: FileContentItem[], webSearchEnabled: boolean = false) => {
     if (selectedModels.length === 0) {
@@ -172,60 +187,10 @@ const Home: React.FC = () => {
 
   const handleShowPreviousMessage = (message: MessageOpenAI) => {
     console.log("Show previous message", message);
-    // if (message.parentId !== null) {
-    //   const messageId =
-    //     currentChat?.chat.history.messages[message.parentId].childrenIds[
-    //       Math.max(
-    //         currentChat?.chat.history.messages[
-    //           message.parentId
-    //         ].childrenIds.indexOf(message.id) - 1,
-    //         0
-    //       )
-    //     ];
-    //   if (messageId) {
-    //     setCurrentMessages((prevMessages: Message[]) => {
-    //       const messageIndex = prevMessages.findIndex(
-    //         (m) => m.id === message.id
-    //       );
-    //       if (
-    //         messageIndex !== -1 &&
-    //         currentChat?.chat.history.messages[messageId]
-    //       ) {
-    //         prevMessages[messageIndex] =
-    //           currentChat?.chat.history.messages[messageId];
-    //       }
-    //       return [...prevMessages];
-    //     });
-    //   }
-    // }
   };
 
   const handleShowNextMessage = (message: MessageOpenAI) => {
     console.log("Show next message", message);
-    // if (!message.parentId) return;
-    // const messageId =
-    //   currentChat?.chat.history.messages[message.parentId].childrenIds[
-    //     Math.min(
-    //       currentChat?.chat.history.messages[
-    //         message.parentId
-    //       ].childrenIds.indexOf(message.id) + 1,
-    //       currentChat?.chat.history.messages[message.parentId].childrenIds
-    //         .length - 1
-    //     )
-    //   ];
-    // if (messageId) {
-    //   setCurrentMessages((prevMessages: Message[]) => {
-    //     const messageIndex = prevMessages.findIndex((m) => m.id === message.id);
-    //     if (
-    //       messageIndex !== -1 &&
-    //       currentChat?.chat.history.messages[messageId]
-    //     ) {
-    //       prevMessages[messageIndex] =
-    //         currentChat?.chat.history.messages[messageId];
-    //     }
-    //     return [...prevMessages];
-    //   });
-    // }
   };
 
   // Reset opacity when chatId changes
@@ -259,25 +224,78 @@ const Home: React.FC = () => {
 
   if (!chatId) {
     return (
-      <>
+      <div id="chat-container" className="relative flex h-full grow-1 flex-col bg-gray-900">
         <Navbar />
-        <ChatPlaceholder inputValue={inputValue} setInputValue={setInputValue}>
-          <MessageInput
-            messages={currentChat?.chat.messages}
-            onSubmit={handleSendMessage}
-            showUserProfile={false}
-            fullWidth={false}
-            prompt={inputValue}
-            setPrompt={setInputValue}
-          />
-        </ChatPlaceholder>
-      </>
+        <div className="flex h-full grow-1 flex-col items-center justify-center">
+          <div className="flex flex-col items-center justify-center">
+            <div className="flex w-fit max-w-2xl flex-col items-center justify-center gap-3 px-2 pb-3 sm:gap-3.5">
+              <h1 className="flex items-center gap-2 text-3xl text-white sm:text-3xl">
+                <NearAIIcon className="h-6" /> AI
+              </h1>
+              <p className="text-base text-white dark:text-gray-300">
+                Chat with your personal assistant without worrying about leaking private information.
+              </p>
+            </div>
+            <MessageInput
+              messages={currentChat?.chat.messages}
+              onSubmit={handleSendMessage}
+              showUserProfile={false}
+              fullWidth={false}
+              prompt={inputValue}
+              setPrompt={setInputValue}
+            />
+            <div className="mx-auto mt-2 w-full max-w-2xl font-primary">
+              <div className="mx-5">
+                <div className="mb-1 flex items-center gap-1 font-medium text-gray-400 text-xs dark:text-gray-400">
+                  <Bolt className="h-4 w-4" />
+                  Suggested
+                </div>
+                <div className="h-40 w-full">
+                  <div role="list" className="scrollbar-none max-h-40 items-start overflow-auto">
+                    {filteredPrompts.map((prompt, idx) => (
+                      <button
+                        key={prompt.content}
+                        role="listitem"
+                        className="waterfall group flex w-full flex-1 shrink-0 flex-col justify-between rounded-xl bg-transparent px-3 py-2 font-normal text-base transition hover:bg-black/5 dark:hover:bg-white/5"
+                        style={{ animationDelay: `${idx * 60}ms` }}
+                        onClick={() => setInputValue(prompt.content)}
+                      >
+                        <div className="flex flex-col text-left">
+                          {prompt.title && prompt.title[0] !== "" ? (
+                            <>
+                              <div className="line-clamp-1 font-medium text-white transition dark:text-gray-300 dark:group-hover:text-gray-200">
+                                {prompt.title[0]}
+                              </div>
+                              <div className="line-clamp-1 font-normal text-gray-400 text-xs dark:text-gray-400">
+                                {prompt.title[1]}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="line-clamp-1 font-medium transition dark:text-gray-300 dark:group-hover:text-gray-200">
+                                {prompt.content}
+                              </div>
+                              <div className="line-clamp-1 font-normal text-gray-600 text-xs dark:text-gray-400">
+                                Prompt
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
   const currentMessages = [...(conversationData?.data ?? [])].reverse();
 
   return (
-    <div className="flex h-full flex-col bg-gray-900">
+    <div className="flex h-full flex-col bg-gray-900" id="chat-container">
       <Navbar />
       <div
         ref={scrollContainerRef}
