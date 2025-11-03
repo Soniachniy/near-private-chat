@@ -218,6 +218,9 @@ const Home: React.FC = () => {
     return () => cancelAnimationFrame(frameId);
   }, [chatId, conversationData]);
 
+  // Compute current messages before any conditional returns
+  const currentMessages = [...(conversationData?.data ?? [])].reverse();
+
   if (isConversationsLoading || isConversationsFetching) {
     return <LoadingScreen />;
   }
@@ -229,10 +232,10 @@ const Home: React.FC = () => {
         <div className="flex h-full grow-1 flex-col items-center justify-center">
           <div className="flex flex-col items-center justify-center">
             <div className="flex w-fit max-w-2xl flex-col items-center justify-center gap-3 px-2 pb-3 sm:gap-3.5">
-              <h1 className="flex items-center gap-2 text-3xl text-white sm:text-3xl">
+              <h1 className="flex max-w-2xl items-center gap-2 text-center text-3xl text-white sm:text-3xl">
                 <NearAIIcon className="h-6" /> AI
               </h1>
-              <p className="text-base text-white dark:text-gray-300">
+              <p className="text-center text-base text-white dark:text-gray-300">
                 Chat with your personal assistant without worrying about leaking private information.
               </p>
             </div>
@@ -292,7 +295,6 @@ const Home: React.FC = () => {
       </div>
     );
   }
-  const currentMessages = [...(conversationData?.data ?? [])].reverse();
 
   return (
     <div className="flex h-full flex-col bg-gray-900" id="chat-container">
