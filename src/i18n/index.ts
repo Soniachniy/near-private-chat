@@ -62,8 +62,8 @@ export const initI18n = async (defaultLocale?: string | undefined) => {
       },
       ns: "translation",
       defaultNS: "translation",
-      returnEmptyString: false,
-      returnNull: false,
+      returnEmptyString: true,
+      returnNull: true,
       returnObjects: false,
       keySeparator: false,
       nsSeparator: false,
@@ -72,6 +72,9 @@ export const initI18n = async (defaultLocale?: string | undefined) => {
       },
       interpolation: {
         escapeValue: false,
+      },
+      react: {
+        useSuspense: false,
       },
     });
 
