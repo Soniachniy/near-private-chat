@@ -240,8 +240,7 @@ export class ApiClient {
             options.queryClient?.setQueryData(
               ["conversation", (body as { conversation?: string })?.conversation || ""],
               (old: Conversation) => {
-                if (data.item.type === "reasoning" || data.item.type === "web_search_call") {
-                  const summary = data.item.type === "reasoning" ? data.item.summary : [];
+                if (data.item.type === "reasoning") {
                   return {
                     ...old,
                     last_id: data.item.id,
@@ -249,7 +248,20 @@ export class ApiClient {
                       {
                         id: data.item.id,
                         type: "reasoning",
-                        summary,
+                        summary: data.item.summary,
+                      },
+                      ...(old.data ?? []),
+                    ],
+                    lastUpdatedAt: Date.now(),
+                  };
+                } else if (data.item.type === "web_search_call") {
+                  return {
+                    ...old,
+                    last_id: data.item.id,
+                    data: [
+                      {
+                        id: data.item.id,
+                        type: "web_search_call",
                       },
                       ...(old.data ?? []),
                     ],

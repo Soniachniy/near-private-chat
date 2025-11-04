@@ -79,7 +79,6 @@ const Home: React.FC = () => {
       { type: "input_text", text: content },
       ...files.map((file) => generateContentFileDataForOpenAI(file)),
     ];
-    console.log("handleSendMessage", content, files, contentItems);
 
     if (!chatId) {
       const newConversation = await createConversation.mutateAsync(
@@ -309,7 +308,12 @@ const Home: React.FC = () => {
             (message.type === "reasoning" || message.type === "web_search_call") &&
             conversationData?.last_id === message.id
           ) {
-            return <MessageSkeleton key={message.id} />;
+            return (
+              <MessageSkeleton
+                key={message.id}
+                message={message.type === "reasoning" ? "Reasoning..." : "Web search in progress..."}
+              />
+            );
           }
           if (message.type !== "message") return null;
 
@@ -325,7 +329,6 @@ const Home: React.FC = () => {
               />
             );
           } else if (message.content.join("") === "") {
-            // } else if (message.content.join("") === "" && !message.error) {
             return <MessageSkeleton key={message.content.join("")} />;
           } else if (message.type === "message" && message.role === "assistant") {
             // const hasMultipleModels = false;

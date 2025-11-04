@@ -302,7 +302,14 @@ class ChatClient extends ApiClient {
       : [{ role, content: [{ type: "input_text", text: content }] }];
     return this.stream(
       "/responses",
-      { model, input, conversation, stream: true, tools, include },
+      {
+        model,
+        input,
+        conversation,
+        stream: true,
+        tools,
+        include,
+      },
       { apiVersion: "v2", queryClient }
     );
   }
