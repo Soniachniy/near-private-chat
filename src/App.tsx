@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { Route, Routes } from "react-router";
 import { Toaster } from "sonner";
-import { useChats } from "@/api/chat/queries";
 import AdminProtectedRoute from "@/components/AdminProtectRoute";
 import LoadingScreen from "@/components/common/LoadingScreen";
 import AdminLayout from "@/components/layout/AdminLayot";
@@ -16,18 +15,11 @@ import Home from "@/pages/Home";
 import { APP_ROUTES } from "@/pages/routes";
 import WelcomePage from "@/pages/WelcomePage";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-import { useUserStore } from "@/stores/useUserStore";
 
 function App() {
   const { isInitialized, isLoading: isAppLoading } = useAppInitialization();
-  const { user } = useUserStore();
-  const token = localStorage.getItem("token");
-  const { isLoading: isChatLoading } = useChats({
-    enabled: !!token && !!user,
-  });
 
   const { settings } = useSettingsStore();
-  console.log("isChatLoading", isInitialized, isChatLoading);
 
   const toasterTheme = useMemo(() => {
     if (settings.theme?.includes("dark")) {
@@ -39,7 +31,7 @@ function App() {
     return "light";
   }, [settings.theme]);
 
-  if (!isInitialized || isAppLoading || (user && isChatLoading)) {
+  if (!isInitialized || isAppLoading) {
     return <LoadingScreen />;
   }
 
