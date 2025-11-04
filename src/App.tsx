@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Route, Routes } from "react-router";
 import { Toaster } from "sonner";
 import { useChats } from "@/api/chat/queries";
@@ -20,15 +21,15 @@ import { useUserStore } from "@/stores/useUserStore";
 function App() {
   const { isInitialized, isLoading: isAppLoading } = useAppInitialization();
   const { user } = useUserStore();
-  const { isLoading: isChatLoading } = useChats();
+  const token = localStorage.getItem("token");
+  const { isLoading: isChatLoading } = useChats({
+    enabled: !!token && !!user,
+  });
 
   const { settings } = useSettingsStore();
   console.log("isChatLoading", isInitialized, isChatLoading);
-  if (!isInitialized || isAppLoading || (user && isChatLoading)) {
-    return <LoadingScreen />;
-  }
 
-  const getToasterTheme = () => {
+  const toasterTheme = useMemo(() => {
     if (settings.theme?.includes("dark")) {
       return "dark";
     }
@@ -36,11 +37,15 @@ function App() {
       return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
     return "light";
-  };
+  }, [settings.theme]);
+
+  if (!isInitialized || isAppLoading || (user && isChatLoading)) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="relative h-screen">
-      <Toaster theme={getToasterTheme()} richColors position="top-right" />
+      <Toaster theme={toasterTheme} richColors position="top-right" />
       <Routes>
         <Route
           element={
