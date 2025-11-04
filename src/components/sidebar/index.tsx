@@ -16,7 +16,7 @@ import ChatItem from "./ChatItem";
 import UserMenu from "./UserMenu";
 
 const LeftSidebar: React.FC = () => {
-  const { t } = useTranslation("translation", { useSuspense: false });
+  const { t } = useTranslation("translation");
   const { isLeftSidebarOpen, setIsLeftSidebarOpen } = useViewStore();
   const { chatId } = useParams();
 

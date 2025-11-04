@@ -7,29 +7,33 @@ import "./index.css";
 import ThemeProvider from "./components/common/ThemeProvider";
 import { initI18n } from "./i18n";
 
-initI18n(localStorage?.locale);
+const initApp = async () => {
+  await initI18n(localStorage?.locale);
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 10,
-      retry: false,
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 1000 * 60 * 5,
+        gcTime: 1000 * 60 * 10,
+        retry: false,
+      },
     },
-  },
-});
+  });
 
-createRoot(document.getElementById("root")!).render(
-  // <React.StrictMode> // React strict mode make two socket connection in dev mode
-  <>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <ThemeProvider>
-          <App />
-        </ThemeProvider>
-      </BrowserRouter>
-      {/* <ReactQueryDevtools initialIsOpen={true} /> */}
-    </QueryClientProvider>
-  </>
-  // </React.StrictMode>
-);
+  createRoot(document.getElementById("root")!).render(
+    // <React.StrictMode> // React strict mode make two socket connection in dev mode
+    <>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <ThemeProvider>
+            <App />
+          </ThemeProvider>
+        </BrowserRouter>
+        {/* <ReactQueryDevtools initialIsOpen={true} /> */}
+      </QueryClientProvider>
+    </>
+    // </React.StrictMode>
+  );
+};
+
+initApp();
