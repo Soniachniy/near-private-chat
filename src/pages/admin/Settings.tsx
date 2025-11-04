@@ -21,7 +21,7 @@ const AdminSettingsPage = () => {
           content: <div>Connections</div>,
         },
       ] as const,
-    []
+    [t]
   );
 
   return <TabbedContent tabs={tabs} defaultTab="general" />;

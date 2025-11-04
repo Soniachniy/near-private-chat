@@ -23,7 +23,6 @@ const ChatItem = ({ chat, isCurrentChat, isPinned }: ChatItemProps) => {
   const [renameInput, setRenameInput] = useState(chat.title ?? BASIC_PLACEHOLDER);
   const { mutate: renameChat } = useRenameChat();
 
-  console.log("isPinned", { isPinned, isCurrentChat });
   const confirmRename = () => {
     renameChat({ id: chat.id, title: renameInput });
     setShowRename(false);

@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 import { useGetConversations } from "@/api/chat/queries/useGetConversations";
-// import { usePinnedChats } from "@/api/chat/queries";
+
 import ChatArrowDown from "@/assets/icons/chat-arrow-down.svg?react";
 import CloseIcon from "@/assets/icons/close-icon.svg?react";
 import NearAIIcon from "@/assets/icons/near-icon-green.svg?react";
@@ -12,35 +12,18 @@ import { cn, getTimeRange } from "@/lib/time";
 import { useViewStore } from "@/stores/useViewStore";
 import type { ConversationInfo } from "@/types";
 import ChatItem from "./ChatItem";
-// import ChatItem from "./ChatItem";
+
 import UserMenu from "./UserMenu";
 
 const LeftSidebar: React.FC = () => {
   const { t } = useTranslation("translation", { useSuspense: false });
   const { isLeftSidebarOpen, setIsLeftSidebarOpen } = useViewStore();
   const { chatId } = useParams();
-  // console.log("params", params.chatId);
+
   const { data: conversations } = useGetConversations();
   console.log("conversations", conversations);
-  // const { data: pinnedChatsData } = usePinnedChats();
+
   const [isChatsOpen, setIsChatsOpen] = useState(true);
-  // const [isPinnedChatsOpen, setIsPinnedChatsOpen] = useState(true);
-
-  // const pinnedChats = useMemo<ChatInfo[]>(() => {
-  //   if (!pinnedChatsData) return [];
-  //   return pinnedChatsData.map((chat) => ({
-  //     id: chat.id,
-  //     content: "",
-  //     title: chat.title,
-  //     created_at: chat.created_at,
-  //     updated_at: String(chat.updated_at),
-  //   }));
-  // }, [pinnedChatsData]);
-
-  // const pinnedChatIds = useMemo(
-  //   () => new Set(pinnedChats.map((chat) => chat.id)),
-  //   [pinnedChats]
-  // );
 
   const chatsGroupedByFolder = useMemo(
     () =>
@@ -56,9 +39,6 @@ const LeftSidebar: React.FC = () => {
       ),
     [conversations]
   );
-
-  console.log("chatsGroupedByFolder", chatsGroupedByFolder);
-
   return (
     <nav className="top-0 left-0 z-50 shrink-0 overflow-x-hidden text-sm transition-width duration-200 ease-in-out">
       <div
@@ -119,19 +99,6 @@ const LeftSidebar: React.FC = () => {
         {isChatsOpen && (
           <div className="flex-1 overflow-hidden px-2">
             <div className="h-full overflow-y-auto overflow-x-hidden">
-              {/* {pinnedChats.length > 0 && (
-                    <div className="mb-2">
-                      {pinnedChats.map((chat) => (
-                        <ChatItem
-                          key={chat.id}
-                          chat={chat}
-                          isCurrentChat={chat.id === currentChat?.id}
-                          isPinned={true}
-                        />
-                      ))}
-                    </div>
-                  )} */}
-
               {chatsGroupedByFolder.map(([timeRange, chats], index) => (
                 <div key={timeRange}>
                   <div

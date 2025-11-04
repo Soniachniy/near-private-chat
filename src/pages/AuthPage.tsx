@@ -39,7 +39,7 @@ const AuthPage: React.FC = () => {
       localStorage.setItem("token", token);
       navigate(APP_ROUTES.HOME, { replace: true });
     }
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   if (!config) {
     return (

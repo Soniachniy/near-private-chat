@@ -7,7 +7,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { keymap } from "@codemirror/view";
 import { basicSetup, EditorView } from "codemirror";
 import type React from "react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 interface CodeEditorProps {
   id: string;
@@ -23,7 +23,26 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ value, lang = "", onChange, onS
   const viewRef = useRef<EditorView | null>(null);
   const editorThemeRef = useRef(new Compartment());
   const editorLanguageRef = useRef(new Compartment());
+  const loadLanguage = useCallback(async (langName: string) => {
+    if (!viewRef.current) return;
 
+    try {
+      const language = languages.find(
+        (l) => l.alias.includes(langName.toLowerCase()) || l.name.toLowerCase() === langName.toLowerCase()
+      );
+
+      if (language) {
+        const languageSupport = await language.load();
+        if (viewRef.current && languageSupport) {
+          viewRef.current.dispatch({
+            effects: editorLanguageRef.current.reconfigure(languageSupport),
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load language:", error);
+    }
+  }, []);
   // Initialize editor
   useEffect(() => {
     if (!editorRef.current || viewRef.current) return;
@@ -94,38 +113,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ value, lang = "", onChange, onS
         viewRef.current = null;
       }
     };
-  }, []);
+  }, [lang, onChange, onSave, loadLanguage, value]);
 
-  // Load language support
-  const loadLanguage = async (langName: string) => {
-    if (!viewRef.current) return;
-
-    try {
-      const language = languages.find(
-        (l) => l.alias.includes(langName.toLowerCase()) || l.name.toLowerCase() === langName.toLowerCase()
-      );
-
-      if (language) {
-        const languageSupport = await language.load();
-        if (viewRef.current && languageSupport) {
-          viewRef.current.dispatch({
-            effects: editorLanguageRef.current.reconfigure(languageSupport),
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load language:", error);
-    }
-  };
-
-  // Update language when it changes
   useEffect(() => {
     if (lang && viewRef.current) {
       loadLanguage(lang);
     }
-  }, [lang]);
+  }, [lang, loadLanguage]);
 
-  // Update editor content when value changes externally
   useEffect(() => {
     if (viewRef.current) {
       const currentValue = viewRef.current.state.doc.toString();

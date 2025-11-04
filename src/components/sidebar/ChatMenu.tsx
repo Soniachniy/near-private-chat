@@ -75,7 +75,6 @@ export default function ChatMenu({ chat, handleRename, isPinned }: ChatMenuProps
           side="bottom"
           align="start"
         >
-          {/* Pin/Unpin */}
           <DropdownMenuItem
             className="flex cursor-pointer flex-row gap-2 rounded-md px-3 py-1.5 text-white hover:bg-gray-800 hover:text-white focus:bg-gray-800 focus:text-white"
             onClick={handlePinToggle}
@@ -93,7 +92,6 @@ export default function ChatMenu({ chat, handleRename, isPinned }: ChatMenuProps
             )}
           </DropdownMenuItem>
 
-          {/* Rename */}
           <DropdownMenuItem
             className="flex cursor-pointer flex-row gap-2 rounded-md px-3 py-1.5 text-white hover:bg-gray-800 hover:text-white focus:bg-gray-800 focus:text-white"
             onClick={handleRename}
@@ -102,7 +100,6 @@ export default function ChatMenu({ chat, handleRename, isPinned }: ChatMenuProps
             <span>{t("Rename")}</span>
           </DropdownMenuItem>
 
-          {/* Clone */}
           <DropdownMenuItem
             className="flex cursor-pointer flex-row gap-2 rounded-md px-3 py-1.5 text-white hover:bg-gray-800 hover:text-white focus:bg-gray-800 focus:text-white"
             onClick={handleClone}
@@ -111,7 +108,6 @@ export default function ChatMenu({ chat, handleRename, isPinned }: ChatMenuProps
             <span>{t("Clone")}</span>
           </DropdownMenuItem>
 
-          {/* Archive */}
           <DropdownMenuItem
             className="flex cursor-pointer flex-row gap-2 rounded-md px-3 py-1.5 text-white hover:bg-gray-800 hover:text-white focus:bg-gray-800 focus:text-white"
             onClick={handleArchive}
@@ -122,7 +118,6 @@ export default function ChatMenu({ chat, handleRename, isPinned }: ChatMenuProps
 
           <DownloadDropdown chatId={chat.id} />
 
-          {/* Delete */}
           <DropdownMenuItem
             className="flex cursor-pointer flex-row gap-2 rounded-md px-3 py-1.5 text-white hover:bg-gray-800 hover:text-white focus:bg-gray-800 focus:text-white"
             onClick={handleDelete}

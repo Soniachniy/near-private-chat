@@ -2,7 +2,7 @@ import { ArrowUpOnSquareIcon, MagnifyingGlassIcon, TrashIcon } from "@heroicons/
 import dayjs from "dayjs";
 import localizedFormat from "dayjs/plugin/localizedFormat";
 import fileSaver from "file-saver";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -98,20 +98,19 @@ const ArchivedChatsModal = ({ open, onOpenChange, onChange }: ArchivedChatsModal
   const [searchValue, setSearchValue] = useState("");
   const [showUnarchiveAllConfirmDialog, setShowUnarchiveAllConfirmDialog] = useState(false);
 
-  // Fetch archived chats when modal opens
-  useEffect(() => {
-    if (open) {
-      fetchArchivedChats();
-    }
-  }, [open]);
-
-  const fetchArchivedChats = async () => {
+  const fetchArchivedChats = useCallback(async () => {
     // const chats = await getArchivedChatList(localStorage.token);
     // setChats(chats);
 
     // Using mock data for development
     setChats(MOCK_ARCHIVED_CHATS);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      fetchArchivedChats();
+    }
+  }, [open, fetchArchivedChats]);
 
   const unarchiveChatHandler = async (chatId: string) => {
     try {

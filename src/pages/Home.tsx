@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import Fuse from "fuse.js";
 import type { Message as MessageOpenAI } from "openai/resources/conversations/conversations";
 import type React from "react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { useConversation } from "@/api/chat/queries/useConversation";
@@ -45,8 +45,10 @@ const Home: React.FC = () => {
   const { generateChatTitle, startStream } = useResponse();
   const [filteredPrompts, setFilteredPrompts] = useState<Prompt[]>([]);
 
+  // Memoize sorted prompts to avoid re-sorting on every render
+  const sortedPrompts = useMemo(() => [...(allPrompts ?? [])].sort(() => Math.random() - 0.5), []);
+
   useEffect(() => {
-    const sortedPrompts = [...(allPrompts ?? [])].sort(() => Math.random() - 0.5);
     if (inputValue.length > 500) {
       setFilteredPrompts([]);
     } else {
@@ -71,7 +73,7 @@ const Home: React.FC = () => {
         return prev;
       });
     }
-  }, [inputValue]);
+  }, [inputValue, sortedPrompts]);
 
   const handleSendMessage = async (content: string, files: FileContentItem[], webSearchEnabled: boolean = false) => {
     if (selectedModels.length === 0) {
@@ -202,7 +204,7 @@ const Home: React.FC = () => {
       setInputValue(welcomePagePrompt);
       localStorage.removeItem("welcomePagePrompt");
     }
-  }, [chatId]);
+  }, []);
 
   useLayoutEffect(() => {
     if (!conversationData || !scrollContainerRef.current) return;
@@ -217,7 +219,7 @@ const Home: React.FC = () => {
       }
     });
     return () => cancelAnimationFrame(frameId);
-  }, [chatId, conversationData]);
+  }, [conversationData]);
 
   const currentMessages = [...(conversationData?.data ?? [])].reverse();
 

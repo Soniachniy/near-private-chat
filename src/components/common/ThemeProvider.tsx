@@ -47,7 +47,7 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     return () => {
       window.removeEventListener("resize", onResize);
     };
-  }, [setIsMobile]);
+  }, [setIsMobile, setIsLeftSidebarOpen]);
 
   return <>{children}</>;
 };

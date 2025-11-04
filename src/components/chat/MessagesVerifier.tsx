@@ -16,7 +16,7 @@ interface MessagesVerifierProps {
   chatId?: string | null;
 }
 
-const MessagesVerifier: React.FC<MessagesVerifierProps> = ({ history, chatId }) => {
+const MessagesVerifier: React.FC<MessagesVerifierProps> = ({ history }) => {
   const { t } = useTranslation("translation", { useSuspense: false });
   const { messagesSignatures, setMessageSignature } = useMessagesSignaturesStore();
 
@@ -62,7 +62,10 @@ const MessagesVerifier: React.FC<MessagesVerifierProps> = ({ history, chatId }) 
         const data = await nearAIClient.getMessageSignature(msg.model || "gpt-3.5-turbo", msg.chatCompletionId);
         if (!data || !data.signature) {
           const errorMsg = data?.detail || data?.message || "No signature data found for this message";
-          setErrorSignatures((prev) => ({ ...prev, [msg.chatCompletionId!]: errorMsg }));
+          setErrorSignatures((prev) => ({
+            ...prev,
+            [msg.chatCompletionId!]: errorMsg,
+          }));
           setError(errorMsg);
           return;
         }
@@ -75,7 +78,10 @@ const MessagesVerifier: React.FC<MessagesVerifierProps> = ({ history, chatId }) 
       } catch (err) {
         console.error("Error fetching message signature:", err);
         const errorMsg = err instanceof Error ? err.message : "Failed to fetch message signature";
-        setErrorSignatures((prev) => ({ ...prev, [msg.chatCompletionId!]: errorMsg }));
+        setErrorSignatures((prev) => ({
+          ...prev,
+          [msg.chatCompletionId!]: errorMsg,
+        }));
         setError(errorMsg);
       } finally {
         setLoadingSignatures((prev) => {
@@ -138,16 +144,16 @@ const MessagesVerifier: React.FC<MessagesVerifierProps> = ({ history, chatId }) 
     setSelectedSignature(null);
   };
 
-  useEffect(() => {
-    setSelectedMessageId("");
-  }, [chatId]);
+  // useEffect(() => {
+  //   setSelectedMessageId("");
+  // }, [chatId]);
 
-  useEffect(() => {
-    if (selectedMessageId) {
-      fetchMessageSignature(selectedMessageId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMessageId]);
+  // useEffect(() => {
+  //   if (selectedMessageId) {
+  //     fetchMessageSignature(selectedMessageId);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [selectedMessageId]);
 
   return (
     <div className="h-full space-y-4 overflow-y-auto px-4 pb-4" ref={containerRef}>

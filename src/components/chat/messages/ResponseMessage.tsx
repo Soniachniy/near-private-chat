@@ -105,7 +105,7 @@ const ResponseMessage: React.FC<ResponseMessageProps> = ({
     const processedContent = replaceTokens(processResponseContent(messageContent), [], undefined, undefined);
 
     return marked.lexer(processedContent);
-  }, [messageContent]);
+  }, [messageContent, message]);
 
   if (!message) return null;
 

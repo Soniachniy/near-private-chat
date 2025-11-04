@@ -52,13 +52,6 @@ const UserMenu: React.FC = () => {
         type: "item",
         action: () => setIsArchivedChatsOpen(true),
       },
-      //TODO: add playground
-      // isAdmin && {
-      //   title: t("Playground"),
-      //   icon: <CodeBracketSquareIcon className="!h-5 !w-5" />,
-      //   type: "item",
-      //   action: () => navigate(APP_ROUTES.PLAYGROUND),
-      // },
       isAdmin && {
         title: t("Admin Panel"),
         icon: <UserCircleIcon className="!h-5 !w-5" />,
@@ -75,7 +68,7 @@ const UserMenu: React.FC = () => {
     ];
 
     return items.filter(Boolean) as DropdownItem[];
-  }, [t, signOut, isAdmin, navigate, setIsSettingsOpen, setIsArchivedChatsOpen]);
+  }, [t, signOut, isAdmin, navigate]);
 
   return (
     <>
