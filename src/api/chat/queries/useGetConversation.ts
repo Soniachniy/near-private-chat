@@ -2,10 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import type { Conversation } from "@/types";
 import { chatClient } from "../client";
 
-export const useGetConversation = (id: string) => {
+export const useGetConversation = (id: string | undefined) => {
   return useQuery({
     queryKey: ["conversation", id],
     queryFn: async () => {
+      if (!id) {
+        throw new Error("Conversation ID is required");
+      }
       const [conversation, conversationItems] = await Promise.all([
         chatClient.getConversation(id),
         chatClient.getConversationItems(id),
@@ -22,9 +25,9 @@ export const useGetConversation = (id: string) => {
         last_id: conversationItems.last_id,
 
         // // Chat properties
-        // user_id: chat.user_id,
-        // title: chat.title,
-        // chat: chat.chat,
+        // // user_id: chat.user_id,
+        // // title: chat.title,
+        // // chat: chat.chat,
       };
       console.log("mergedConversation", mergedConversation);
 

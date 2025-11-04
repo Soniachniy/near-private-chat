@@ -38,7 +38,7 @@ const Home: React.FC = () => {
     isLoading: isConversationsLoading,
     isFetching: isConversationsFetching,
     data: conversationData,
-  } = useGetConversation(chatId!);
+  } = useGetConversation(chatId);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
