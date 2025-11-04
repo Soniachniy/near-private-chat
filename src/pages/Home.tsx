@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import Fuse from "fuse.js";
 import type { Message as MessageOpenAI } from "openai/resources/conversations/conversations";
 import type React from "react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { useConversation } from "@/api/chat/queries/useConversation";
@@ -44,31 +44,34 @@ const Home: React.FC = () => {
 
   const { generateChatTitle, startStream } = useResponse();
   const [filteredPrompts, setFilteredPrompts] = useState<Prompt[]>([]);
-  const getFilteredPrompts = useCallback(
-    (inputValue: string) => {
-      const sortedPrompts = [...(allPrompts ?? [])].sort(() => Math.random() - 0.5);
-      if (inputValue.length > 500) {
-        setFilteredPrompts([]);
-      } else {
-        const fuse = new Fuse(sortedPrompts, {
-          keys: ["content", "title"],
-          threshold: 0.5,
-        });
-
-        const newFilteredPrompts =
-          inputValue.trim() && fuse ? fuse.search(inputValue.trim()).map((result) => result.item) : sortedPrompts;
-
-        if (filteredPrompts.length !== newFilteredPrompts.length) {
-          setFilteredPrompts(newFilteredPrompts);
-        }
-      }
-    },
-    [filteredPrompts]
-  );
 
   useEffect(() => {
-    getFilteredPrompts(inputValue);
-  }, [inputValue, getFilteredPrompts]);
+    const sortedPrompts = [...(allPrompts ?? [])].sort(() => Math.random() - 0.5);
+    if (inputValue.length > 500) {
+      setFilteredPrompts([]);
+    } else {
+      const fuse = new Fuse(sortedPrompts, {
+        keys: ["content", "title"],
+        threshold: 0.5,
+      });
+
+      const newFilteredPrompts =
+        inputValue.trim() && fuse ? fuse.search(inputValue.trim()).map((result) => result.item) : sortedPrompts;
+
+      setFilteredPrompts((prev) => {
+        if (prev.length !== newFilteredPrompts.length) {
+          return newFilteredPrompts;
+        }
+
+        const prevContents = prev.map((p) => p.content).join(",");
+        const newContents = newFilteredPrompts.map((p) => p.content).join(",");
+        if (prevContents !== newContents) {
+          return newFilteredPrompts;
+        }
+        return prev;
+      });
+    }
+  }, [inputValue]);
 
   const handleSendMessage = async (content: string, files: FileContentItem[], webSearchEnabled: boolean = false) => {
     if (selectedModels.length === 0) {
@@ -192,7 +195,6 @@ const Home: React.FC = () => {
     console.log("Show next message", message);
   };
 
-  // Reset opacity when chatId changes
   useEffect(() => {
     setOpacity(0);
     const welcomePagePrompt = localStorage.getItem("welcomePagePrompt");
@@ -217,7 +219,6 @@ const Home: React.FC = () => {
     return () => cancelAnimationFrame(frameId);
   }, [chatId, conversationData]);
 
-  // Compute current messages before any conditional returns
   const currentMessages = [...(conversationData?.data ?? [])].reverse();
 
   if (isConversationsLoading || isConversationsFetching) {
