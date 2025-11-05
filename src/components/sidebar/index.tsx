@@ -1,6 +1,6 @@
 import type React from "react";
 import { useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
+
 import { Link, useParams } from "react-router";
 import { useGetConversations } from "@/api/chat/queries/useGetConversations";
 
@@ -16,12 +16,10 @@ import ChatItem from "./ChatItem";
 import UserMenu from "./UserMenu";
 
 const LeftSidebar: React.FC = () => {
-  const { t } = useTranslation("translation");
   const { isLeftSidebarOpen, setIsLeftSidebarOpen } = useViewStore();
   const { chatId } = useParams();
 
   const { data: conversations } = useGetConversations();
-  console.log("conversations", conversations);
 
   const [isChatsOpen, setIsChatsOpen] = useState(true);
 
@@ -72,7 +70,7 @@ const LeftSidebar: React.FC = () => {
                 to="/"
               >
                 <div className="flex items-center">
-                  <div className="self-center font-medium font-primary text-sm">{t("New Chat")}</div>
+                  <div className="self-center font-medium font-primary text-sm">New Chat</div>
                 </div>
                 <div>
                   <PencilIcon fill={"#000"} />
@@ -88,7 +86,7 @@ const LeftSidebar: React.FC = () => {
                     <div className="size-3 text-gray-300 dark:text-gray-600">
                       <ChatArrowDown stroke="#676767" className={!isChatsOpen ? "rotate-270" : ""} />
                     </div>
-                    <div className="translate-y-[0.5px]">{t("Chats")}</div>
+                    <div className="translate-y-[0.5px]">Chats</div>
                   </button>
                 </div>
               </div>

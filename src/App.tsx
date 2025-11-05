@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { Route, Routes } from "react-router";
 import { Toaster } from "sonner";
 import AdminProtectedRoute from "@/components/AdminProtectRoute";
@@ -36,37 +36,39 @@ function App() {
   }
 
   return (
-    <div className="relative h-screen">
-      <Toaster theme={toasterTheme} richColors position="top-right" />
-      <Routes>
-        <Route
-          element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path={APP_ROUTES.HOME} element={<Home />} />
-          <Route path={APP_ROUTES.CHAT} element={<Home />} />
-
+    <Suspense fallback={<LoadingScreen />}>
+      <div className="relative h-screen">
+        <Toaster theme={toasterTheme} richColors position="top-right" />
+        <Routes>
           <Route
             element={
-              <AdminProtectedRoute>
-                <AdminLayout />
-              </AdminProtectedRoute>
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
             }
           >
-            <Route path={APP_ROUTES.ADMIN} element={<AdminPage />} />
-            <Route path={APP_ROUTES.ADMIN_USERS} element={<AdminUsersPage />} />
-            <Route path={APP_ROUTES.ADMIN_SETTINGS} element={<AdminSettingsPage />} />
-            {/* <Route path={APP_ROUTES.PLAYGROUND} element={<Playground />} /> */}
-          </Route>
-        </Route>
+            <Route path={APP_ROUTES.HOME} element={<Home />} />
+            <Route path={APP_ROUTES.CHAT} element={<Home />} />
 
-        <Route path={APP_ROUTES.WELCOME} element={<WelcomePage />} />
-        <Route path={APP_ROUTES.AUTH} element={<AuthPage />} />
-      </Routes>
-    </div>
+            <Route
+              element={
+                <AdminProtectedRoute>
+                  <AdminLayout />
+                </AdminProtectedRoute>
+              }
+            >
+              <Route path={APP_ROUTES.ADMIN} element={<AdminPage />} />
+              <Route path={APP_ROUTES.ADMIN_USERS} element={<AdminUsersPage />} />
+              <Route path={APP_ROUTES.ADMIN_SETTINGS} element={<AdminSettingsPage />} />
+              {/* <Route path={APP_ROUTES.PLAYGROUND} element={<Playground />} /> */}
+            </Route>
+          </Route>
+
+          <Route path={APP_ROUTES.WELCOME} element={<WelcomePage />} />
+          <Route path={APP_ROUTES.AUTH} element={<AuthPage />} />
+        </Routes>
+      </div>
+    </Suspense>
   );
 }
 
