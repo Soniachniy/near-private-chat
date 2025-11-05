@@ -26,7 +26,7 @@ type SortOrder = "asc" | "desc";
 const ITEMS_PER_PAGE = 20;
 
 const UserList = () => {
-  const { t } = useTranslation("translation", { useSuspense: false });
+  const { t } = useTranslation("translation");
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");

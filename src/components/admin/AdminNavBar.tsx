@@ -6,7 +6,7 @@ import { ADMIN_ROUTES } from "@/pages/routes";
 import { useViewStore } from "@/stores/useViewStore";
 
 const AdminNavBar = () => {
-  const { t } = useTranslation("translation", { useSuspense: false });
+  const { t } = useTranslation("translation");
   const { pathname } = useLocation();
   const isLeftSidebarOpen = useViewStore((state) => state.isLeftSidebarOpen);
   const setIsLeftSidebarOpen = useViewStore((state) => state.setIsLeftSidebarOpen);

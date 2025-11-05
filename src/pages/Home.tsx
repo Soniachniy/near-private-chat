@@ -45,7 +45,6 @@ const Home: React.FC = () => {
   const { generateChatTitle, startStream } = useResponse();
   const [filteredPrompts, setFilteredPrompts] = useState<Prompt[]>([]);
 
-  // Memoize sorted prompts to avoid re-sorting on every render
   const sortedPrompts = useMemo(() => [...(allPrompts ?? [])].sort(() => Math.random() - 0.5), []);
 
   useEffect(() => {
@@ -232,7 +231,7 @@ const Home: React.FC = () => {
       <div id="chat-container" className="relative flex h-full grow-1 flex-col bg-gray-900">
         <Navbar />
         <div className="flex h-full grow-1 flex-col items-center justify-center">
-          <div className="flex flex-col items-center justify-center">
+          <div className="flex w-full flex-col items-center justify-center">
             <div className="flex w-fit max-w-2xl flex-col items-center justify-center gap-3 px-2 pb-3 sm:gap-3.5">
               <h1 className="flex max-w-2xl items-center gap-2 text-center text-3xl text-white sm:text-3xl">
                 <NearAIIcon className="h-6" /> AI
@@ -321,7 +320,6 @@ const Home: React.FC = () => {
           if (message.type !== "message") return null;
 
           if (message.type === "message" && message.role === "user") {
-            console.log("user message", message);
             return (
               <UserMessage
                 message={message}
@@ -334,24 +332,6 @@ const Home: React.FC = () => {
           } else if (message.content.join("") === "") {
             return <MessageSkeleton key={message.content.join("")} />;
           } else if (message.type === "message" && message.role === "assistant") {
-            // const hasMultipleModels = false;
-
-            // if (hasMultipleModels) {
-            //   return (
-            //     <MultiResponseMessages
-            //       message={message}
-            //       isLastMessage={idx === currentMessages.length - 1}
-            //       readOnly={false}
-            //       webSearchEnabled={false}
-            //       saveMessage={handleSaveMessage}
-            //       deleteMessage={handleDeleteMessage}
-            //       regenerateResponse={handleRegenerateResponse}
-            //       mergeResponses={handleMergeResponses}
-            //       showPreviousMessage={handleShowPreviousMessage}
-            //       showNextMessage={handleShowNextMessage}
-            //     />
-            //   );
-            // } else {
             return (
               <ResponseMessage
                 message={message}
@@ -366,7 +346,6 @@ const Home: React.FC = () => {
                 showNextMessage={handleShowNextMessage}
               />
             );
-            // }
           } else {
             return null;
           }

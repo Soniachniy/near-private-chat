@@ -442,11 +442,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
               </button>
             </div>
           )}
-          <div
-            className={`${
-              settings.widescreenMode ? "max-w-full" : "max-w-6xl"
-            }w-full inset-x-0 mx-auto flex-1 grow px-2.5`}
-          >
+          <div className={`inset-x-0 mx-auto w-full max-w-full flex-1 grow px-2.5 md:max-w-3xl`}>
             <div className="">
               <input
                 ref={filesInputRef}

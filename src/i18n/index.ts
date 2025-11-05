@@ -14,7 +14,6 @@ declare module "i18next" {
   }
 }
 
-// Dynamic language loading function
 const loadLanguageResource = async (langCode: string) => {
   try {
     const translation = await import(`./locales/${langCode}/translation.json`);
@@ -29,13 +28,10 @@ export const initI18n = async (defaultLocale?: string | undefined) => {
   const detectionOrder = defaultLocale ? ["querystring", "localStorage"] : ["querystring", "localStorage", "navigator"];
   const fallbackDefaultLocale = defaultLocale ? [defaultLocale] : ["en-US"];
 
-  // Load all available language resources
   const resources: Record<string, { translation: typeof enUS }> = {};
 
-  // Always load English as fallback
   resources["en-US"] = { translation: enUS };
 
-  // Load all other languages
   for (const lang of languages) {
     if (lang.code !== "en-US") {
       const translation = await loadLanguageResource(lang.code);
@@ -72,6 +68,9 @@ export const initI18n = async (defaultLocale?: string | undefined) => {
       },
       interpolation: {
         escapeValue: false,
+      },
+      react: {
+        useSuspense: false,
       },
     });
 
